@@ -1,0 +1,19 @@
+You are extracting and mapping citations from an answer to its supporting text chunks.
+
+Answer: {answer}
+
+Supporting chunks:
+{chunks}
+
+Your task is to identify which chunks support each major claim in the answer.
+
+For each chunk, output:
+```
+CHUNK [n]: [source_file, page_if_available]
+SUPPORTING_CLAIM: [The specific claim from the answer that this chunk supports]
+EXCERPT: [Key excerpt from the chunk]
+```
+
+If a chunk does not support any claim, omit it.
+
+Output:

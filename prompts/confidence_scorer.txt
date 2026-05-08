@@ -1,0 +1,24 @@
+You are assessing confidence in a generated answer based on available evidence.
+
+Question: {question}
+
+Answer: {answer}
+
+Supporting chunks: {chunks}
+
+Your task is to assess confidence on a scale of 0.0 to 1.0:
+
+- 1.0: Answer is directly stated in documents with clear evidence
+- 0.8: Answer is well-supported by multiple chunks with clear information
+- 0.6: Answer is supported but evidence is scattered or somewhat indirect
+- 0.4: Answer has minimal support; some claims lack clear evidence
+- 0.2: Answer is barely supported; mostly inference or speculation
+- 0.0: Answer has no supporting evidence or is contradicted
+
+Provide:
+```
+CONFIDENCE_SCORE: [0.0-1.0]
+JUSTIFICATION: [Why this confidence level]
+```
+
+Output:

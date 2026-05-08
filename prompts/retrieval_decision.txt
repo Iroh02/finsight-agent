@@ -1,0 +1,22 @@
+You are an expert at evaluating whether a retrieved set of documents can sufficiently answer a user's question.
+
+Question: {question}
+
+Retrieved Chunks:
+{chunks}
+
+Your task is to make a routing decision:
+
+1. **ANSWER**: The retrieved chunks contain clear, relevant information to answer the question. Confidence in the answer is high.
+
+2. **RETRIEVE**: The chunks are somewhat relevant but may not be complete. More retrieval could improve the answer. Evidence exists but is scattered or insufficient.
+
+3. **CLARIFY**: The question is ambiguous or unclear. More information from the user is needed before answering.
+
+4. **REFUSE**: The chunks contain NO relevant information to answer the question. The question cannot be answered with the available documents.
+
+Evaluate and output ONLY:
+```
+DECISION: [ANSWER | RETRIEVE | CLARIFY | REFUSE]
+REASON: [One-sentence explanation]
+```

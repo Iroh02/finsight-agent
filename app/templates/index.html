@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSight Agent</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>FinSight Agent</h1>
+                <p class="subtitle">Explainable RAG for Business Documents</p>
+            </div>
+            <div class="mode-toggle">
+                <label for="mode-select">Mode:</label>
+                <select id="mode-select">
+                    <option value="agentic">Agentic RAG</option>
+                    <option value="naive">Naive RAG (Baseline)</option>
+                </select>
+            </div>
+        </header>
+
+        <div class="main-container">
+            <!-- Left Sidebar -->
+            <aside class="sidebar">
+                <h3>Documents</h3>
+                <div id="documents-list" class="documents-list">
+                    <p class="loading">Loading documents...</p>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Model</h3>
+                    <select id="model-select" class="model-select">
+                        <option value="gpt-4o-mini">GPT-4o Mini</option>
+                        <option value="gpt-4">GPT-4</option>
+                    </select>
+                </div>
+
+                <div class="sidebar-section">
+                    <button id="clear-button" class="clear-button">Clear History</button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="content">
+                <!-- Question Input -->
+                <div class="question-section">
+                    <textarea
+                        id="question-input"
+                        class="question-input"
+                        placeholder="Ask a question about the documents..."
+                        rows="3"
+                    ></textarea>
+                    <div class="button-group">
+                        <button id="submit-button" class="submit-button">Submit</button>
+                        <span id="loading-spinner" class="spinner hidden"></span>
+                    </div>
+                </div>
+
+                <!-- Response Section -->
+                <div id="response-section" class="response-section hidden">
+
+                    <!-- Answer Card -->
+                    <div class="card answer-card">
+                        <div class="card-header">
+                            <h2>Answer</h2>
+                            <div class="confidence-badge" id="confidence-badge">
+                                <span id="confidence-value">--</span>
+                            </div>
+                        </div>
+                        <p id="answer-text" class="answer-text"></p>
+                    </div>
+
+                    <!-- Decision Info Card -->
+                    <div class="card decision-card">
+                        <div class="card-header">
+                            <h3>System Decision</h3>
+                        </div>
+                        <div class="decision-info">
+                            <p><strong>Decision:</strong> <span id="decision-state" class="decision-badge"></span></p>
+                            <p><strong>Reason:</strong> <span id="decision-reason"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Citations Card -->
+                    <div class="card citations-card">
+                        <div class="card-header">
+                            <h3>Sources <span id="citation-count" class="count-badge">0</span></h3>
+                        </div>
+                        <div id="citations-list" class="citations-list">
+                            <p class="empty-state">No citations found.</p>
+                        </div>
+                    </div>
+
+                    <!-- Retrieved Chunks Card -->
+                    <div class="card chunks-card">
+                        <div class="card-header">
+                            <h3>Retrieved Context <span id="chunks-count" class="count-badge">0</span></h3>
+                        </div>
+                        <div id="chunks-list" class="chunks-list">
+                            <p class="empty-state">No chunks retrieved.</p>
+                        </div>
+                    </div>
+
+                    <!-- Metadata Card -->
+                    <div class="card metadata-card">
+                        <div class="card-header">
+                            <h3>Metadata</h3>
+                        </div>
+                        <div class="metadata-info">
+                            <p><strong>Execution Time:</strong> <span id="execution-time">--</span> ms</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="empty-state-container">
+                    <p>Ask a question to get started.</p>
+                    <p class="hint">Try: "What was the revenue in 2023?" or "Summarize the key risks."</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="error-state" class="error-state hidden">
+                    <p id="error-message"></p>
+                    <button id="error-dismiss" class="error-dismiss">Dismiss</button>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+question_id,category,question,expected_answer,should_refuse
+F1,Factual,"What was the company's total revenue in 2023?","[Expected answer based on documents]",False
+F2,Factual,"What is the company's headquarters location?","[Expected answer based on documents]",False
+F3,Factual,"How many employees does the company have?","[Expected answer based on documents]",False
+F4,Factual,"What is the company's fiscal year end date?","[Expected answer based on documents]",False
+C1,Comparison,"How did revenue change between 2022 and 2023?","[Expected comparison based on documents]",False
+C2,Comparison,"Which business segment has the highest revenue?","[Expected answer based on documents]",False
+C3,Comparison,"How does R&D spending compare to industry average?","[If available in documents]",False
+R1,Reasoning,"What are the key risk factors mentioned in the report?","[Summary of risks from documents]",False
+R2,Reasoning,"What is the company's strategy for future growth?","[Strategic statements from documents]",False
+N1,Should-Refuse,"What did the CEO say in their personal social media?","",True
+N2,Should-Refuse,"What is the company's stock price today?","",True
+N3,Should-Refuse,"What are future product launches planned for next year?","",True
