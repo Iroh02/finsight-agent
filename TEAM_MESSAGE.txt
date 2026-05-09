@@ -1,0 +1,56 @@
+🚀 FinSight Agent - Project Kickoff!
+
+Hi team! Our 3-day GenAI final project is ready to go. Here's what you need to do RIGHT NOW:
+
+1️⃣  CLONE THE REPO
+git clone https://github.com/Iroh02/finsight-agent.git
+cd finsight-agent
+
+2️⃣  SET UP YOUR ENVIRONMENT
+python -m venv venv
+venv\Scripts\activate  # Windows
+pip install -r requirements.txt
+
+3️⃣  CONFIGURE API KEYS
+cp .env.example .env
+[Edit .env and add your OpenAI/Anthropic API key]
+
+4️⃣  READ THE SETUP GUIDE
+Open and read: TEAM_SETUP.md
+(It has everything you need to get started)
+
+5️⃣  FIND YOUR TASKS
+Go to GitHub Issues: https://github.com/Iroh02/finsight-agent/issues
+
+Look for issues with your name:
+- Anushree: Data pipeline (PDFs → embeddings → vector store)
+- Nandita: Agentic layer + evaluation + test questions
+- Jillian: FastAPI backend + HTML/CSS/JS frontend + prompts
+
+6️⃣  START BUILDING
+Create a feature branch and start on Day 1 tasks!
+git checkout -b feature/your-name-task
+
+---
+
+KEY DOCS TO READ:
+📖 TEAM_SETUP.md - How to clone, setup, and start
+📖 QUICKSTART.md - Your day-by-day workflow
+📖 README.md - Project overview
+📖 docs/architecture.md - System design
+📖 GITHUB_ISSUES.md - All tasks with acceptance criteria
+
+---
+
+TIMELINE:
+📅 Day 1 (Today): Data pipeline foundation
+📅 Day 2: Agentic RAG + UI
+📅 Day 3: Evaluation + presentation
+
+---
+
+You've got 3 days. The structure is in place. Let's build something great! 💪
+
+Questions? Check TEAM_SETUP.md first, then open a GitHub issue.
+
+Let's go! 🎯
