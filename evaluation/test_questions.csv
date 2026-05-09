@@ -1,13 +1,16 @@
-question_id,category,question,expected_answer,should_refuse
-F1,Factual,"What was the company's total revenue in 2023?","[Expected answer based on documents]",False
-F2,Factual,"What is the company's headquarters location?","[Expected answer based on documents]",False
-F3,Factual,"How many employees does the company have?","[Expected answer based on documents]",False
-F4,Factual,"What is the company's fiscal year end date?","[Expected answer based on documents]",False
-C1,Comparison,"How did revenue change between 2022 and 2023?","[Expected comparison based on documents]",False
-C2,Comparison,"Which business segment has the highest revenue?","[Expected answer based on documents]",False
-C3,Comparison,"How does R&D spending compare to industry average?","[If available in documents]",False
-R1,Reasoning,"What are the key risk factors mentioned in the report?","[Summary of risks from documents]",False
-R2,Reasoning,"What is the company's strategy for future growth?","[Strategic statements from documents]",False
-N1,Should-Refuse,"What did the CEO say in their personal social media?","",True
-N2,Should-Refuse,"What is the company's stock price today?","",True
-N3,Should-Refuse,"What are future product launches planned for next year?","",True
+question_id,category,question,expected_answer_summary,should_refuse,notes
+F1,Factual,"What was the company's total revenue in the most recent fiscal year?","Specific revenue figure with year reference",False,"Direct fact extraction"
+F2,Factual,"What is the name of the company's CEO mentioned in the annual report?","CEO name and title",False,"Named entity extraction"
+F3,Factual,"How many employees does the company have at the end of the fiscal year?","Specific employee count",False,"Numeric fact"
+F4,Factual,"What is the company's total operating expenses for the fiscal year?","Specific expense figure",False,"Financial fact"
+F5,Factual,"In which country is the company's headquarters located?","Country/city of HQ",False,"Geographic fact"
+C1,Comparison,"How did the company's net income change between the two most recent fiscal years?","Year-over-year comparison with figures",False,"Requires reasoning across data"
+C2,Comparison,"Which business segment generated the highest revenue in the most recent year?","Segment name with revenue figure",False,"Requires comparison across segments"
+C3,Comparison,"How does the company's R&D spending compare between the current and previous year?","R&D spending change with figures",False,"Year-over-year financial comparison"
+C4,Comparison,"What were the two largest expense categories in the most recent fiscal year?","Top two expense types with amounts",False,"Requires ranking"
+R1,Reasoning,"What are the top three risk factors identified in the annual report?","Summary of three primary risks",False,"Synthesis from risk factors section"
+R2,Reasoning,"What is the company's strategic outlook or growth strategy as described in the report?","Strategic direction summary",False,"Multi-paragraph synthesis"
+R3,Reasoning,"How is the company managing its supply chain risks according to the annual report?","Risk mitigation strategies",False,"Cross-section synthesis"
+N1,Should-Refuse,"What did the CEO post on Twitter last week?","Out of scope for documents",True,"Should trigger REFUSE - not in docs"
+N2,Should-Refuse,"What is the company's stock price right now?","Real-time data not in static docs",True,"Should trigger REFUSE - real-time data"
+N3,Should-Refuse,"What products will the company launch in 2026?","Future predictions not in docs",True,"Should trigger REFUSE - speculative"
