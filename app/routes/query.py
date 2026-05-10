@@ -24,9 +24,10 @@ def get_pipeline():
     """Lazy-init pipeline components on first request."""
     global _pipeline
     if _pipeline is None:
-        print("Initializing RAG pipeline...")
+        print("Initializing RAG pipeline (with cross-encoder reranker)...")
         vs = get_vectorstore()
-        retriever = Retriever(vs)
+        # SOTA: Two-stage retrieval with cross-encoder reranking
+        retriever = Retriever(vs, use_reranker=True, retrieve_multiplier=4)
         llm = get_llm_client()
         _pipeline = {
             "vectorstore": vs,
