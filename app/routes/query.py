@@ -11,6 +11,7 @@ from src.naive_rag import NaiveRAG
 from src.agent import AgenticRouter
 from src.citations import CitationExtractor
 from src.confidence import ConfidenceScorer
+from src.self_reflection import SelfReflectionCritic
 from src.llm_client import get_llm_client
 
 
@@ -37,6 +38,7 @@ def get_pipeline():
             "agent": AgenticRouter(retriever, llm),
             "citations": CitationExtractor(use_llm=False),
             "confidence": ConfidenceScorer(use_heuristic=True),
+            "critic": SelfReflectionCritic(llm),
         }
         stats = vs.get_stats()
         print(f"Pipeline ready. Vector store: {stats}")
@@ -75,12 +77,40 @@ async def query_rag(request: QueryRequest):
         answer = result.get("answer", "")
         citations_raw = pipeline["citations"].extract_citations(answer, chunks)
 
-        # Score confidence
+        # Score confidence (initial)
         confidence = pipeline["confidence"].score(
             answer=answer,
             chunks=chunks,
             decision=result.get("decision", "ANSWER"),
         )
+
+        # SOTA: Self-reflection (only for agentic mode and ANSWER decisions)
+        critique_info = None
+        if (
+            request.mode == "agentic"
+            and result.get("decision") == "ANSWER"
+            and answer
+            and chunks
+        ):
+            try:
+                critique = pipeline["critic"].reflect(
+                    question=question,
+                    answer=answer,
+                    chunks=chunks,
+                )
+                # Adjust confidence based on self-critique
+                confidence = pipeline["critic"].adjust_confidence(
+                    original_confidence=confidence,
+                    critique=critique,
+                    weight=0.5,
+                )
+                critique_info = {
+                    "support_level": critique.get("support_level"),
+                    "support_score": critique.get("support_score"),
+                    "issues": critique.get("issues", []),
+                }
+            except Exception as e:
+                print(f"Self-reflection failed: {e}")
 
         # Format response
         formatted_citations = [
