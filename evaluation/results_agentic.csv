@@ -1,0 +1,24 @@
+question_id,category,question,mode,answer,decision,execution_time_s,relevance,faithfulness,has_citations,correct_abstention,confidence,num_chunks,answer_length,error
+F1,Factual,What was Apple's total revenue in fiscal year 2025?,agentic,"Apple's total revenue for fiscal year 2025 was $416.161 billion, which includes $307.003 billion from products and $109.158 billion from services (Source: Apple_10K_2025.pdf, Page: 32).",ANSWER,7.63,0.617,1.0,1,1,0.97,5,185,
+F2,Factual,Who is the CEO of Apple Inc.?,agentic,"The CEO of Apple Inc. is Timothy D. Cook, as stated in the certifications of the Chief Executive Officer and Chief Financial Officer in the Annual Report of Apple Inc. on Form 10-K for the fiscal year",ANSWER,6.91,0.883,0.9,1,1,0.975,5,265,
+F3,Factual,What was Amazon's net sales in Q1 2026?,agentic,"Amazon's net sales in Q1 2026 were $181.5 billion, which represents a 17% increase compared to $155.7 billion in Q1 2025 (Source: Amazon_Q1_2026.pdf, Page: 2).",ANSWER,5.66,0.53,1.0,1,1,0.965,5,159,
+F4,Factual,What does NVIDIA primarily manufacture?,agentic,"Thank you for your question regarding what NVIDIA primarily manufactures. Unfortunately, the available documents do not provide a comprehensive answer to this inquiry.
+
+However, I did find some releva",REFUSE,9.79,1.0,0.5,1,0,0.0,10,802,
+F5,Factual,What is Apple's services segment revenue in 2025?,agentic,"Apple's services segment revenue in 2025 was $109,158 million, an increase from $96,169 million in 2024, primarily due to higher net sales from advertising, the App Store, and cloud services (Source: ",ANSWER,5.7,0.767,1.0,1,1,0.975,5,230,
+C1,Comparison,Compare Apple's revenue from products vs services in 2025,agentic,"In 2025, Apple's revenue from products was $307,003 million, while revenue from services was $109,158 million (Source: Apple_10K_2025.pdf, Page: 32). This indicates that products accounted for a signi",ANSWER,16.37,1.0,0.9,1,1,0.985,5,355,
+C2,Comparison,Compare Apple's and Amazon's revenue in their latest filings,agentic,"Thank you for your question regarding a comparison of Apple's and Amazon's revenue in their latest filings. Unfortunately, I cannot fully answer your question based on the available documents.
+
+From t",REFUSE,6.31,1.0,0.5,1,0,0.0,10,844,
+C3,Comparison,How does Apple's R&D investment compare to its operating income?,agentic,"Thank you for your question regarding Apple's R&D investment in relation to its operating income. Unfortunately, the available documents do not provide a direct comparison between Apple's R&D investme",REFUSE,7.85,1.0,0.5,1,0,0.0,10,849,
+C4,Comparison,What are the differences between Apple's and NVIDIA's business models?,agentic,"Thank you for your question regarding the differences between Apple's and NVIDIA's business models. Unfortunately, I cannot provide a comprehensive answer based on the available documents.
+
+From the i",REFUSE,4.6,1.0,0.5,1,0,0.0,5,1115,
+R1,Reasoning,What are the primary risk factors mentioned in Apple's 10-K?,agentic,"Thank you for your question regarding the primary risk factors mentioned in Apple's 10-K. Unfortunately, I cannot provide a complete answer based on the available documents. While I found references t",REFUSE,4.77,1.0,0.5,1,0,0.0,10,708,
+R2,Reasoning,"Based on Apple's filings, what is their strategy for the services business?",agentic,"Thank you for your question regarding Apple's strategy for their services business. Unfortunately, the available documents do not provide a comprehensive overview of their strategic approach in this a",REFUSE,6.67,1.0,0.5,1,0,0.0,10,941,
+R3,Reasoning,How does Apple manage supply chain risk according to its 10-K?,agentic,"Thank you for your question regarding how Apple manages supply chain risk according to its 10-K report. Unfortunately, the available excerpts do not provide a comprehensive answer to this inquiry. 
+
+F",REFUSE,6.95,1.0,0.5,1,0,0.0,10,1029,
+N1,Should-Refuse,What did Tim Cook say on Twitter yesterday?,agentic,"I'm sorry, but I cannot provide an answer to your question about what Tim Cook said on Twitter yesterday, as the available documents do not contain any information regarding his social media activity ",REFUSE,6.43,1.0,1.0,1,1,0.0,5,808,
+N2,Should-Refuse,What is Apple's stock price right now?,agentic,"I'm sorry, but I cannot provide the current stock price of Apple Inc. based on the available documents. The information I have includes historical stock prices up to September 2025, with the last reco",REFUSE,3.99,1.0,1.0,1,1,0.0,5,529,
+N3,Should-Refuse,What products will Apple launch in 2027?,agentic,"Thank you for your question regarding the products Apple may launch in 2027. Unfortunately, the available documents do not provide any specific information about future product launches beyond fiscal ",REFUSE,3.57,1.0,1.0,1,1,0.0,5,737,

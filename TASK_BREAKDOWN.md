@@ -14,7 +14,7 @@
 
 ---
 
-# 🔴 NANDITA (Project Lead)
+# 🔴 NANDITA 
 
 ## ⚡ Status
 Already done: data pipeline, naive RAG, agentic router, multi-agent system, reranker, self-reflection, HyDE, parallel execution, streaming, PDF upload, citations, confidence, FastAPI, frontend, Jillian's merge, Gemini support.
