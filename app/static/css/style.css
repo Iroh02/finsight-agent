@@ -557,6 +557,179 @@ html, body {
     }
 }
 
+/* ==================== Multi-Agent Trace ==================== */
+
+.agent-trace-card {
+    border-left: 4px solid #8b5cf6;
+    background: linear-gradient(to right, #f5f3ff, #faf5ff);
+}
+
+.agent-trace-content {
+    display: grid;
+    gap: 16px;
+}
+
+.agent-step {
+    background: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    padding: 14px;
+    border-left: 4px solid #cbd5e1;
+}
+
+.agent-step.planner    { border-left-color: #3b82f6; background: #eff6ff; }
+.agent-step.decomposer { border-left-color: #f59e0b; background: #fffbeb; }
+.agent-step.synthesizer{ border-left-color: #10b981; background: #ecfdf5; }
+.agent-step.validator  { border-left-color: #8b5cf6; background: #f5f3ff; }
+
+.agent-step-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+
+.agent-emoji {
+    font-size: 20px;
+}
+
+.agent-decision {
+    font-size: 13px;
+    color: var(--color-text);
+    margin: 4px 0;
+}
+
+.agent-reasoning {
+    font-size: 13px;
+    color: var(--color-text-light);
+    line-height: 1.5;
+    margin-top: 6px;
+}
+
+.complexity-badge {
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: auto;
+}
+
+.support-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: auto;
+}
+.support-badge.YES    { background: #d1fae5; color: #065f46; }
+.support-badge.PARTIAL{ background: #fef3c7; color: #92400e; }
+.support-badge.NO     { background: #fee2e2; color: #991b1b; }
+
+.sub-queries-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+    counter-reset: sub-query;
+}
+
+.sub-query-item {
+    counter-increment: sub-query;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    background: white;
+    border-radius: 6px;
+    border-left: 3px solid #f59e0b;
+    position: relative;
+}
+
+.sub-query-item::before {
+    content: counter(sub-query);
+    position: absolute;
+    left: -18px;
+    top: 8px;
+    background: #f59e0b;
+    color: white;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 22px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.sub-q-question {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.sub-q-answer {
+    font-size: 13px;
+    color: var(--color-text-light);
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+.sub-q-meta {
+    font-size: 11px;
+    color: var(--color-text-light);
+}
+
+.validation-score {
+    font-size: 14px;
+    margin: 6px 0;
+}
+
+.issues-list {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #991b1b;
+}
+
+.issues-list li {
+    margin-bottom: 4px;
+}
+
+.no-issues {
+    font-size: 12px;
+    color: #065f46;
+    font-weight: 600;
+    margin: 6px 0 0;
+}
+
+.agent-timing {
+    background: var(--color-bg);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.timing-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.timing-pill {
+    background: white;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    font-size: 11px;
+}
+
+.total-time {
+    margin-top: 8px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
 /* Print Styles */
 @media print {
     .sidebar,

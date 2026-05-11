@@ -17,7 +17,8 @@
             <div class="mode-toggle">
                 <label for="mode-select">Mode:</label>
                 <select id="mode-select">
-                    <option value="agentic">Agentic RAG</option>
+                    <option value="multi_agent">Multi-Agent RAG (SOTA)</option>
+                    <option value="agentic" selected>Agentic RAG</option>
                     <option value="naive">Naive RAG (Baseline)</option>
                 </select>
             </div>
@@ -82,6 +83,16 @@
                         <div class="decision-info">
                             <p><strong>Decision:</strong> <span id="decision-state" class="decision-badge"></span></p>
                             <p><strong>Reason:</strong> <span id="decision-reason"></span></p>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Agent Trace Card (only shown for multi_agent mode) -->
+                    <div class="card agent-trace-card hidden" id="agent-trace-card">
+                        <div class="card-header">
+                            <h3>🤖 Multi-Agent Trace</h3>
+                        </div>
+                        <div id="agent-trace-content" class="agent-trace-content">
+                            <!-- Filled by JS -->
                         </div>
                     </div>
 

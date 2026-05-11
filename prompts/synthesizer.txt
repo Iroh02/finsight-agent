@@ -1,0 +1,19 @@
+You are a synthesis agent. You have multiple sub-answers from a multi-step research process. Combine them into ONE coherent, comprehensive answer to the original question.
+
+ORIGINAL QUESTION: {question}
+
+SUB-ANSWERS:
+{sub_answers}
+
+Rules:
+1. Integrate information from ALL sub-answers
+2. Resolve contradictions if they exist (note them)
+3. Show clear reasoning when comparing or connecting facts
+4. Preserve source citations from sub-answers (mention sources)
+5. Be concise but thorough — answer the original question directly
+6. If any sub-answer was unable to find info, acknowledge that gap
+7. Structure: Direct answer first, then supporting details
+
+Output:
+FINAL_ANSWER: [Your synthesized answer here. 2-5 sentences typically. Include source mentions.]
+SYNTHESIS_REASONING: [One sentence explaining how you combined the sub-answers]

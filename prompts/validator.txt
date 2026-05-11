@@ -1,0 +1,37 @@
+You are a validation agent. Your job is to critically evaluate whether a multi-step reasoning process is sound.
+
+ORIGINAL QUESTION: {question}
+
+SUB-QUERIES AND THEIR ANSWERS:
+{sub_answers}
+
+FINAL SYNTHESIZED ANSWER:
+{final_answer}
+
+ALL RETRIEVED EVIDENCE:
+{evidence}
+
+Validate:
+1. **Sub-answer support**: Is each sub-answer supported by the evidence?
+2. **Synthesis logic**: Does the final answer logically follow from the sub-answers?
+3. **Completeness**: Does the final answer address the original question fully?
+4. **Consistency**: Are there contradictions between sub-answers?
+5. **Hallucinations**: Any claims not supported by evidence?
+
+Output EXACTLY in this format:
+
+VALIDATION_SCORE: [0.0-1.0, where 1.0 = fully valid reasoning chain]
+SUPPORTED: [YES | PARTIAL | NO]
+ISSUES: [List specific issues found, separated by semicolons. Or "none".]
+SUGGESTED_CONFIDENCE: [0.0-1.0 for the final answer]
+SUMMARY: [One sentence assessment]
+
+Example:
+
+VALIDATION_SCORE: 0.85
+SUPPORTED: YES
+ISSUES: none
+SUGGESTED_CONFIDENCE: 0.85
+SUMMARY: The reasoning chain is sound; each sub-answer is grounded and the synthesis correctly combines them.
+
+Now validate:

@@ -1,7 +1,7 @@
 """Pydantic models for request/response validation."""
 
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 
 class Citation(BaseModel):
@@ -19,10 +19,30 @@ class RetrievedChunk(BaseModel):
     relevance_score: Optional[float] = None
 
 
+class SubQueryResult(BaseModel):
+    """Result for a single sub-query in multi-agent mode."""
+    question: str
+    answer: str
+    order: int
+    chunks_count: int = 0
+
+
+class MultiAgentTrace(BaseModel):
+    """Full trace of multi-agent execution."""
+    planner_decision: str  # SINGLE_AGENT or MULTI_AGENT
+    planner_reasoning: str
+    complexity_score: int  # 1-5
+    sub_queries: List[SubQueryResult] = []
+    synthesis_reasoning: Optional[str] = None
+    validation_report: Dict[str, Any] = {}
+    execution_time_per_agent: Dict[str, float] = {}
+    total_time_seconds: Optional[float] = None
+
+
 class QueryRequest(BaseModel):
     """Request body for POST /query."""
     question: str
-    mode: str = "agentic"  # "agentic" or "naive"
+    mode: str = "agentic"  # "agentic", "naive", or "multi_agent"
     selected_docs: Optional[List[str]] = None
 
 
@@ -35,6 +55,7 @@ class QueryResponse(BaseModel):
     citations: List[Citation]
     chunks: List[RetrievedChunk]
     execution_time_ms: Optional[float] = None
+    multi_agent_trace: Optional[MultiAgentTrace] = None
 
 
 class HealthResponse(BaseModel):
