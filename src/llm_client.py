@@ -1,4 +1,4 @@
-"""LLM client wrapper supporting OpenAI and Anthropic."""
+"""LLM client wrapper supporting OpenAI, Anthropic, and Google Gemini."""
 
 import os
 from typing import Optional, List, Dict
@@ -8,14 +8,17 @@ load_dotenv()
 
 
 class LLMClient:
-    """Unified LLM client supporting OpenAI and Anthropic."""
+    """Unified LLM client supporting OpenAI, Anthropic, and Google Gemini.
+
+    Gemini is the best free option (1500 free queries/day, no credit card).
+    """
 
     def __init__(self, provider: str = None, model: str = None):
         """
         Initialize LLM client.
 
         Args:
-            provider: "openai" or "anthropic" (auto-detected from .env if None)
+            provider: "openai", "anthropic", or "gemini" (auto-detected from .env if None)
             model: Model name (uses default if None)
         """
         self.provider = provider or self._auto_detect_provider()
@@ -28,17 +31,26 @@ class LLMClient:
             return "openai"
         elif os.getenv("ANTHROPIC_API_KEY"):
             return "anthropic"
+        elif os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"):
+            return "gemini"
         else:
             raise ValueError(
-                "No API key found. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in .env"
+                "No API key found. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, "
+                "or GOOGLE_API_KEY (Gemini, free) in .env"
             )
 
     def _get_default_model(self) -> str:
         """Get default model for the provider."""
+        env_model = os.getenv("LLM_MODEL")
         if self.provider == "openai":
-            return os.getenv("LLM_MODEL", "gpt-4o-mini")
+            return env_model or "gpt-4o-mini"
         elif self.provider == "anthropic":
-            return os.getenv("LLM_MODEL", "claude-3-haiku-20240307")
+            return env_model or "claude-3-haiku-20240307"
+        elif self.provider == "gemini":
+            # Default to Flash for speed and free tier compatibility
+            if env_model and env_model.startswith("gemini"):
+                return env_model
+            return "gemini-1.5-flash"
         else:
             raise ValueError(f"Unknown provider: {self.provider}")
 
@@ -50,6 +62,11 @@ class LLMClient:
         elif self.provider == "anthropic":
             import anthropic
             return anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        elif self.provider == "gemini":
+            import google.generativeai as genai
+            api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+            genai.configure(api_key=api_key)
+            return genai.GenerativeModel(self.model)
         else:
             raise ValueError(f"Unknown provider: {self.provider}")
 
@@ -76,6 +93,8 @@ class LLMClient:
             return self._openai_generate(prompt, system, temperature, max_tokens)
         elif self.provider == "anthropic":
             return self._anthropic_generate(prompt, system, temperature, max_tokens)
+        elif self.provider == "gemini":
+            return self._gemini_generate(prompt, system, temperature, max_tokens)
 
     def _openai_generate(
         self, prompt: str, system: Optional[str], temperature: float, max_tokens: int
@@ -109,6 +128,43 @@ class LLMClient:
 
         response = self.client.messages.create(**kwargs)
         return response.content[0].text.strip()
+
+    def _gemini_generate(
+        self, prompt: str, system: Optional[str], temperature: float, max_tokens: int
+    ) -> str:
+        """Google Gemini generation (free tier compatible)."""
+        import google.generativeai as genai
+
+        # Gemini supports system instructions via system_instruction param
+        if system:
+            # Re-initialize model with system instruction
+            model = genai.GenerativeModel(
+                self.model,
+                system_instruction=system,
+            )
+        else:
+            model = self.client
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            ),
+        )
+
+        # Handle blocked / empty responses gracefully
+        try:
+            return response.text.strip()
+        except Exception:
+            # Sometimes Gemini blocks content - return placeholder
+            try:
+                candidates = response.candidates
+                if candidates and candidates[0].content.parts:
+                    return candidates[0].content.parts[0].text.strip()
+            except Exception:
+                pass
+            return "[Gemini response blocked or empty]"
 
 
 def load_prompt(prompt_name: str) -> str:

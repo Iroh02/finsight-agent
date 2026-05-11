@@ -42,10 +42,37 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Then edit `.env` and add your OpenAI API key:
+Then edit `.env` and add an API key. **Pick ONE of these 3 options**:
+
+### 🌟 **Option 1: Google Gemini (FREE — RECOMMENDED)** ⭐
+
+Get a free key in 2 minutes:
+1. Go to https://aistudio.google.com/apikey
+2. Sign in with Google
+3. Click "Create API Key"
+4. Copy the key
+
+Add to `.env`:
 ```
-OPENAI_API_KEY=sk-proj-...your-key-here...
+GOOGLE_API_KEY=your_free_gemini_key_here
+LLM_MODEL=gemini-1.5-flash
 ```
+
+**Limits**: 1,500 queries/day. No credit card. Perfect for testing the full project.
+
+### **Option 2: OpenAI ($5 minimum)**
+```
+OPENAI_API_KEY=sk-proj-...
+LLM_MODEL=gpt-4o-mini
+```
+
+### **Option 3: Anthropic Claude**
+```
+ANTHROPIC_API_KEY=sk-ant-...
+LLM_MODEL=claude-3-haiku-20240307
+```
+
+The system **auto-detects** which provider to use based on the key you set.
 
 ---
 
