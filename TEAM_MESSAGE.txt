@@ -1,56 +1,111 @@
-🚀 FinSight Agent - Project Kickoff!
+🚀 FinSight Agent — FINAL PUSH
 
-Hi team! Our 3-day GenAI final project is ready to go. Here's what you need to do RIGHT NOW:
+Hey team! Technical core is DONE. Master has everything working.
 
-1️⃣  CLONE THE REPO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣ PULL THE LATEST CODE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 git clone https://github.com/Iroh02/finsight-agent.git
 cd finsight-agent
+git checkout master
+git pull
 
-2️⃣  SET UP YOUR ENVIRONMENT
+# Set up env
 python -m venv venv
-venv\Scripts\activate  # Windows
+venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-
-3️⃣  CONFIGURE API KEYS
 cp .env.example .env
-[Edit .env and add your OpenAI/Anthropic API key]
+# Edit .env, add your OPENAI_API_KEY
 
-4️⃣  READ THE SETUP GUIDE
-Open and read: TEAM_SETUP.md
-(It has everything you need to get started)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣ TEST THAT IT WORKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-5️⃣  FIND YOUR TASKS
-Go to GitHub Issues: https://github.com/Iroh02/finsight-agent/issues
+# Start server
+uvicorn app.main:app --host 127.0.0.1 --port 8001
 
-Look for issues with your name:
-- Anushree: Data pipeline (PDFs → embeddings → vector store)
-- Nandita: Agentic layer + evaluation + test questions
-- Jillian: FastAPI backend + HTML/CSS/JS frontend + prompts
+# Open browser: http://127.0.0.1:8001
+# Try a query, select "Multi-Agent RAG (SOTA)" mode
 
-6️⃣  START BUILDING
-Create a feature branch and start on Day 1 tasks!
-git checkout -b feature/your-name-task
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3️⃣ CREATE YOUR FEATURE BRANCH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
----
+# Anushree
+git checkout -b feature/anushree-evaluation
 
-KEY DOCS TO READ:
-📖 TEAM_SETUP.md - How to clone, setup, and start
-📖 QUICKSTART.md - Your day-by-day workflow
-📖 README.md - Project overview
-📖 docs/architecture.md - System design
-📖 GITHUB_ISSUES.md - All tasks with acceptance criteria
+# Jillian
+git checkout -b feature/jillian-slides
 
----
+DO NOT WORK ON MASTER.
 
-TIMELINE:
-📅 Day 1 (Today): Data pipeline foundation
-📅 Day 2: Agentic RAG + UI
-📅 Day 3: Evaluation + presentation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4️⃣ YOUR TASKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
----
+🔴 ANUSHREE — MINIMUM:
+   #28 Compile 3-way evaluation table (30 min)
 
-You've got 3 days. The structure is in place. Let's build something great! 💪
+🔴 ANUSHREE — SOTA bonus:
+   #31 RAGAS evaluation (45 min)
+   #32 LLM-as-Judge (30 min)
+   #36 Chain-of-Verification CoVe (45 min)
 
-Questions? Check TEAM_SETUP.md first, then open a GitHub issue.
+🟢 JILLIAN — MINIMUM:
+   #29 Create 10-slide presentation (90 min)
+   #30 Data pipeline documentation (30 min)
 
-Let's go! 🎯
+🟢 JILLIAN — SOTA bonus:
+   #34 Multi-turn conversation memory (60 min)
+   #40 PDF export reasoning trace (45 min)
+   #41 Conversation history sidebar (30 min)
+
+All issues: https://github.com/Iroh02/finsight-agent/issues
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5️⃣ RUN THE EVALUATION (ANUSHREE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Terminal 1: keep server running
+uvicorn app.main:app --host 127.0.0.1 --port 8001
+
+# Terminal 2: run evaluation
+python evaluation/eval_script.py --modes naive agentic multi_agent
+
+# Produces 3 CSV files in evaluation/
+# Compile into comparison table per #28
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6️⃣ PUSH YOUR WORK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+git add .
+git commit -m "feat: closes #XX — what you did"
+git push -u origin feature/your-branch
+
+# Then create a Pull Request on GitHub
+# Nandita will merge to master
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 WHAT'S ALREADY DONE (DON'T REBUILD)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Naive RAG, Agentic Router, Multi-Agent System
+✓ Cross-encoder reranker, Self-reflection critic
+✓ Citations, confidence scoring
+✓ FastAPI + HTML/CSS/JS frontend
+✓ HyDE, Parallel sub-queries, Streaming, PDF upload
+✓ Vector store with Apple, Amazon, Nvidia PDFs (630 chunks)
+✓ Jillian's data pipeline merged
+✓ Markdown rendering, agent trace UI
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⏰ DEADLINE: TODAY by 8 PM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Full details: See TEAM_UPDATE.md in repo
+📋 All tasks:    https://github.com/Iroh02/finsight-agent/issues
+💬 Questions:    Comment on the issue itself
+
+LET'S GO! 💪
