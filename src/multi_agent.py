@@ -12,6 +12,7 @@ Architecture inspired by:
 """
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional
 
 from src.agents import (
@@ -128,33 +129,51 @@ class MultiAgentOrchestrator:
             }
             return result
 
-        # ============== STEP 4: PER-SUB-QUERY RETRIEVAL + ANSWER ==============
+        # ============== STEP 4: PER-SUB-QUERY RETRIEVAL + ANSWER (PARALLEL) ==============
+        # SOTA optimization: process all sub-queries concurrently using thread pool
+        # This reduces multi-agent latency significantly for multi-hop questions.
         t = time.time()
-        sub_answers = []
+
+        # Preheat retrieval models before parallel execution to avoid race conditions
+        # in lazy model loading (embedder + reranker)
+        try:
+            _ = self.retriever.retrieve(sub_questions[0], k=1)
+        except Exception:
+            pass  # Continue even if warmup fails
+        sub_answers_dict = {}  # order -> result, to maintain ordering
         all_chunks = []
 
-        for i, sub_q in enumerate(sub_questions, 1):
+        def _process_sub_query(idx_q):
+            """Process a single sub-query: retrieve + generate sub-answer."""
+            i, sub_q = idx_q
             try:
-                # Retrieve for this sub-query
                 chunks = self.retriever.retrieve(sub_q, k=k)
-                all_chunks.extend(chunks)
-
-                # Generate sub-answer
                 sub_answer = self._generate_sub_answer(sub_q, chunks)
-
-                sub_answers.append({
+                return (i, {
                     "question": sub_q,
                     "answer": sub_answer,
                     "chunks": chunks,
                     "order": i,
                 })
             except Exception as e:
-                sub_answers.append({
+                return (i, {
                     "question": sub_q,
-                    "answer": f"[Error retrieving for this sub-question: {e}]",
+                    "answer": f"[Error: {e}]",
                     "chunks": [],
                     "order": i,
                 })
+
+        # Run all sub-queries concurrently
+        indexed = list(enumerate(sub_questions, 1))
+        with ThreadPoolExecutor(max_workers=min(5, len(sub_questions))) as executor:
+            futures = [executor.submit(_process_sub_query, item) for item in indexed]
+            for future in as_completed(futures):
+                idx, result = future.result()
+                sub_answers_dict[idx] = result
+                all_chunks.extend(result.get("chunks", []))
+
+        # Restore order
+        sub_answers = [sub_answers_dict[i] for i in sorted(sub_answers_dict.keys())]
         timing["retrieval_and_subanswers"] = round(time.time() - t, 2)
 
         # ============== STEP 5: SYNTHESIZER ==============

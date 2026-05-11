@@ -557,6 +557,106 @@ html, body {
     }
 }
 
+/* ==================== Upload Area ==================== */
+
+.upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 10px;
+    border: 2px dashed var(--color-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--color-bg);
+}
+
+.upload-area:hover, .upload-area.drag-active {
+    border-color: var(--color-primary);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.upload-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.upload-text {
+    font-size: 11px;
+    color: var(--color-text-light);
+    text-align: center;
+    line-height: 1.4;
+}
+
+.upload-status {
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.upload-status.success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.upload-status.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.upload-status.loading {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+/* ==================== Markdown Answer Styling ==================== */
+
+.answer-text strong { color: var(--color-primary-dark); }
+.answer-text em { color: var(--color-text); }
+.answer-text code {
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.92em;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+.answer-text pre {
+    background: #1f2937;
+    color: #f9fafb;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+.answer-text pre code { background: transparent; color: inherit; padding: 0; }
+.answer-text ul, .answer-text ol {
+    margin: 6px 0 6px 22px;
+    padding-left: 4px;
+}
+.answer-text li { margin-bottom: 3px; line-height: 1.55; }
+.answer-text blockquote {
+    border-left: 3px solid var(--color-primary);
+    padding-left: 12px;
+    color: var(--color-text-light);
+    margin: 8px 0;
+    font-style: italic;
+}
+.answer-text a { color: var(--color-primary); text-decoration: underline; }
+.answer-text table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 13px;
+    width: 100%;
+}
+.answer-text th, .answer-text td {
+    border: 1px solid var(--color-border);
+    padding: 6px 10px;
+    text-align: left;
+}
+.answer-text th { background: var(--color-bg); font-weight: 600; }
+
 /* ==================== Multi-Agent Trace ==================== */
 
 .agent-trace-card {

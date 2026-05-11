@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FinSight Agent</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Syntax highlighting -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/core.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -30,6 +35,16 @@
                 <h3>Documents</h3>
                 <div id="documents-list" class="documents-list">
                     <p class="loading">Loading documents...</p>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>Upload PDF</h3>
+                    <label for="file-upload" class="upload-area" id="upload-area">
+                        <span class="upload-icon">📄</span>
+                        <span class="upload-text">Click to upload or drag PDF here</span>
+                    </label>
+                    <input type="file" id="file-upload" accept=".pdf" style="display:none">
+                    <div id="upload-status" class="upload-status hidden"></div>
                 </div>
 
                 <div class="sidebar-section">

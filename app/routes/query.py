@@ -1,7 +1,11 @@
 """Query handler endpoint for RAG system."""
 
+import json
 import time
-from fastapi import APIRouter, HTTPException
+import asyncio
+from pathlib import Path
+from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from app.schemas import (
     QueryRequest,
     QueryResponse,
@@ -191,6 +195,144 @@ async def query_rag(request: QueryRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@router.post("/query/stream")
+async def query_rag_stream(request: QueryRequest):
+    """
+    Streaming RAG query endpoint using Server-Sent Events.
+
+    Streams progress updates as the agents work:
+    - status events at each stage
+    - final answer when complete
+
+    Use this for richer UX where the user sees the agents progressing.
+    """
+    async def event_generator():
+        try:
+            pipeline = get_pipeline()
+            question = request.question.strip()
+
+            if not question:
+                yield f"data: {json.dumps({'type': 'error', 'message': 'Empty question'})}\n\n"
+                return
+
+            # Send initial status
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'starting', 'message': f'Processing in {request.mode} mode...'})}\n\n"
+            await asyncio.sleep(0.1)
+
+            if request.mode == "multi_agent":
+                yield f"data: {json.dumps({'type': 'status', 'stage': 'planner', 'message': 'Planner agent analyzing complexity...'})}\n\n"
+                await asyncio.sleep(0.1)
+
+            # Run query (synchronous - in real production this would be async)
+            start_time = time.time()
+            if request.mode == "naive":
+                result = pipeline["naive_rag"].query(question, k=5)
+            elif request.mode == "multi_agent":
+                yield f"data: {json.dumps({'type': 'status', 'stage': 'multi_agent', 'message': 'Coordinating 4 specialized agents...'})}\n\n"
+                await asyncio.sleep(0.1)
+                result = pipeline["multi_agent"].query(question, k=5)
+            else:
+                yield f"data: {json.dumps({'type': 'status', 'stage': 'agentic', 'message': 'Routing and retrieving...'})}\n\n"
+                await asyncio.sleep(0.1)
+                result = pipeline["agent"].route_and_answer(question, k=5)
+
+            # Build the same response object as POST /query
+            chunks = result.get("chunks", [])
+            answer = result.get("answer", "")
+            citations_raw = pipeline["citations"].extract_citations(answer, chunks)
+            confidence = result.get("confidence", 0) or pipeline["confidence"].score(
+                answer, chunks, result.get("decision", "ANSWER")
+            )
+
+            # Stream the answer word-by-word for visual effect
+            yield f"data: {json.dumps({'type': 'status', 'stage': 'streaming', 'message': 'Streaming answer...'})}\n\n"
+
+            words = answer.split()
+            chunk_size = 3
+            for i in range(0, len(words), chunk_size):
+                word_chunk = " ".join(words[i:i + chunk_size])
+                yield f"data: {json.dumps({'type': 'token', 'text': word_chunk + ' '})}\n\n"
+                await asyncio.sleep(0.05)
+
+            # Send final complete response
+            final = {
+                "type": "complete",
+                "answer": answer,
+                "decision": result.get("decision", "ANSWER"),
+                "confidence": confidence,
+                "reason": result.get("reason", ""),
+                "citations": [
+                    {"source": c["source"], "page": c.get("page"), "excerpt": c.get("excerpt", "")[:200]}
+                    for c in citations_raw
+                ],
+                "chunks": [
+                    {"text": ch["text"][:500], "source": ch.get("source", ""), "page": ch.get("page"), "relevance_score": ch.get("score")}
+                    for ch in chunks[:10]
+                ],
+                "execution_time_ms": round((time.time() - start_time) * 1000, 2),
+                "multi_agent_trace": result.get("multi_agent_trace"),
+            }
+            yield f"data: {json.dumps(final)}\n\n"
+
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
+
+
+@router.post("/upload")
+async def upload_document(file: UploadFile = File(...)):
+    """Upload a PDF, save to data/raw/, and ingest into the vector store."""
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    # Save file
+    upload_dir = Path("data/raw")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    file_path = upload_dir / file.filename
+
+    try:
+        content = await file.read()
+        file_path.write_bytes(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+
+    # Ingest the new file
+    try:
+        from src.loader import PDFLoader
+        from src.cleaner import clean_pages
+        from src.chunker import TextChunker
+
+        loader = PDFLoader(str(file_path))
+        pages = loader.extract_text()
+        cleaned = clean_pages(pages)
+
+        chunker = TextChunker(chunk_size=1000, overlap=100)
+        chunks = chunker.chunk(cleaned)
+
+        pipeline = get_pipeline()
+        pipeline["vectorstore"].add_documents(chunks)
+
+        return {
+            "status": "success",
+            "filename": file.filename,
+            "pages": len(pages),
+            "chunks_ingested": len(chunks),
+            "size_kb": round(len(content) / 1024, 1),
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to ingest: {e}")
 
 
 @router.get("/documents")

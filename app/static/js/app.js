@@ -58,6 +58,77 @@ function setupEventListeners() {
 
     errorDismiss.addEventListener('click', hideError);
     clearButton.addEventListener('click', clearHistory);
+
+    // Upload area
+    setupUploadArea();
+}
+
+/**
+ * Set up PDF upload area (click + drag/drop)
+ */
+function setupUploadArea() {
+    const uploadArea = document.getElementById('upload-area');
+    const fileInput = document.getElementById('file-upload');
+    const uploadStatus = document.getElementById('upload-status');
+
+    if (!uploadArea || !fileInput) return;
+
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (file) await uploadFile(file);
+    });
+
+    // Drag-drop
+    ['dragenter', 'dragover'].forEach(ev => {
+        uploadArea.addEventListener(ev, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.add('drag-active');
+        });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+        uploadArea.addEventListener(ev, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('drag-active');
+        });
+    });
+    uploadArea.addEventListener('drop', async (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file) await uploadFile(file);
+    });
+
+    async function uploadFile(file) {
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            showUploadStatus('Only PDF files are supported', 'error');
+            return;
+        }
+
+        showUploadStatus(`Uploading ${file.name}...`, 'loading');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const resp = await fetch('/upload', { method: 'POST', body: formData });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || 'Upload failed');
+            showUploadStatus(
+                `✓ ${file.name}: ${data.chunks_ingested} chunks added`,
+                'success'
+            );
+            // Reload documents list
+            setTimeout(loadDocuments, 500);
+        } catch (err) {
+            showUploadStatus(`✗ ${err.message}`, 'error');
+        }
+    }
+
+    function showUploadStatus(msg, type) {
+        uploadStatus.textContent = msg;
+        uploadStatus.className = `upload-status ${type}`;
+        uploadStatus.classList.remove('hidden');
+    }
 }
 
 /**
@@ -155,8 +226,15 @@ function displayResponse(response) {
     emptyState.classList.add('hidden');
     responseSection.classList.remove('hidden');
 
-    // Answer
-    answerText.textContent = response.answer;
+    // Answer — render with markdown for richer formatting
+    if (typeof marked !== 'undefined') {
+        answerText.innerHTML = marked.parse(response.answer || '', {
+            breaks: true,
+            gfm: true,
+        });
+    } else {
+        answerText.textContent = response.answer;
+    }
 
     // Confidence
     const confidence = response.confidence;

@@ -1,0 +1,11 @@
+You are simulating a hypothetical answer to a question about business or financial documents.
+
+Question: {question}
+
+Write a SHORT, plausible-sounding answer (2-3 sentences) AS IF you had perfect knowledge from a corporate annual report. Use the kind of vocabulary, phrasing, and detail that would appear in a real annual report or 10-K filing.
+
+This hypothetical answer will be used to find semantically similar content in real documents.
+
+Do NOT preface with "I think" or "It might be". Write confidently as if quoting the actual report.
+
+Hypothetical Answer:
