@@ -175,6 +175,9 @@ function displayResponse(response) {
     // Chunks
     renderChunks(response.chunks);
 
+    // Multi-agent trace (if present)
+    renderAgentTrace(response.multi_agent_trace);
+
     // Execution time
     executionTime.textContent = response.execution_time_ms
         ? response.execution_time_ms.toFixed(2)
@@ -184,6 +187,117 @@ function displayResponse(response) {
     setTimeout(() => {
         responseSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 100);
+}
+
+/**
+ * Render multi-agent trace (only for multi_agent mode)
+ */
+function renderAgentTrace(trace) {
+    const card = document.getElementById('agent-trace-card');
+    const content = document.getElementById('agent-trace-content');
+
+    if (!trace) {
+        card.classList.add('hidden');
+        return;
+    }
+
+    card.classList.remove('hidden');
+
+    const planner = `
+        <div class="agent-step planner">
+            <div class="agent-step-header">
+                <span class="agent-emoji">🎯</span>
+                <strong>Planner Agent</strong>
+                <span class="complexity-badge">Complexity: ${trace.complexity_score}/5</span>
+            </div>
+            <p class="agent-decision"><strong>Decision:</strong> ${trace.planner_decision}</p>
+            <p class="agent-reasoning">${escapeHtml(trace.planner_reasoning || '')}</p>
+        </div>
+    `;
+
+    let subQueriesHtml = '';
+    if (trace.sub_queries && trace.sub_queries.length > 0) {
+        subQueriesHtml = `
+            <div class="agent-step decomposer">
+                <div class="agent-step-header">
+                    <span class="agent-emoji">🔨</span>
+                    <strong>Decomposer Agent</strong>
+                    <span class="count-badge">${trace.sub_queries.length} sub-queries</span>
+                </div>
+                <ol class="sub-queries-list">
+                    ${trace.sub_queries.map((sq, i) => `
+                        <li class="sub-query-item">
+                            <div class="sub-q-question"><strong>Q:</strong> ${escapeHtml(sq.question)}</div>
+                            <div class="sub-q-answer"><strong>A:</strong> ${escapeHtml(sq.answer)}</div>
+                            <div class="sub-q-meta">📄 ${sq.chunks_count} chunks retrieved</div>
+                        </li>
+                    `).join('')}
+                </ol>
+            </div>
+        `;
+    }
+
+    let synthHtml = '';
+    if (trace.synthesis_reasoning && trace.sub_queries.length > 0) {
+        synthHtml = `
+            <div class="agent-step synthesizer">
+                <div class="agent-step-header">
+                    <span class="agent-emoji">🧬</span>
+                    <strong>Synthesizer Agent</strong>
+                </div>
+                <p class="agent-reasoning">${escapeHtml(trace.synthesis_reasoning)}</p>
+            </div>
+        `;
+    }
+
+    let validationHtml = '';
+    if (trace.validation_report && Object.keys(trace.validation_report).length > 0) {
+        const v = trace.validation_report;
+        const issuesHtml = v.issues && v.issues.length > 0
+            ? `<ul class="issues-list">${v.issues.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`
+            : '<p class="no-issues">No issues found ✓</p>';
+        validationHtml = `
+            <div class="agent-step validator">
+                <div class="agent-step-header">
+                    <span class="agent-emoji">✅</span>
+                    <strong>Validator Agent</strong>
+                    <span class="support-badge ${v.supported || ''}">${v.supported || ''}</span>
+                </div>
+                <p class="validation-score"><strong>Validation Score:</strong> ${(v.validation_score || 0).toFixed(2)}/1.0</p>
+                <p class="agent-reasoning">${escapeHtml(v.summary || '')}</p>
+                <div class="issues-section">
+                    <strong>Issues:</strong>
+                    ${issuesHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    let timingHtml = '';
+    if (trace.execution_time_per_agent && Object.keys(trace.execution_time_per_agent).length > 0) {
+        const timings = Object.entries(trace.execution_time_per_agent)
+            .map(([agent, t]) => `<span class="timing-pill"><strong>${agent}:</strong> ${t}s</span>`)
+            .join('');
+        timingHtml = `
+            <div class="agent-timing">
+                <strong>⏱️ Agent Timing:</strong>
+                <div class="timing-pills">${timings}</div>
+                ${trace.total_time_seconds ? `<p class="total-time">Total: ${trace.total_time_seconds}s</p>` : ''}
+            </div>
+        `;
+    }
+
+    content.innerHTML = planner + subQueriesHtml + synthHtml + validationHtml + timingHtml;
+}
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 /**
