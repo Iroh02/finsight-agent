@@ -1,12 +1,22 @@
-# FinSight Agent: An Explainable Agentic RAG System for Business Document Intelligence
+# FinSight Agent: A SOTA Multi-Agent RAG System for Business Document Intelligence
 
-A 3-day MVP project for an Advanced Topics in Generative AI course. An intelligent question-answering system that retrieves, reasons over, and explains answers from corporate annual reports using a lightweight agentic decision layer.
+> A research-aligned 3-day final project for *Advanced Topics in Generative AI*. Combines multi-agent collaborative reasoning, cross-encoder reranking, self-reflective answer critique, and source-grounded citations into a transparent, trustworthy question-answering system over corporate documents.
+
+## Highlights
+
+- **Multi-Agent RAG**: 4 specialized cooperating agents (Planner, Decomposer, Synthesizer, Validator)
+- **SOTA Two-Stage Retrieval**: Vector search + cross-encoder reranking
+- **Self-Reflective Answer Critique**: Detects hallucinations and adjusts confidence
+- **4-State Agentic Routing**: ANSWER / RETRIEVE / CLARIFY / REFUSE
+- **Source-Grounded Citations**: Every claim mapped to a document page
+- **Confidence Calibration**: 0.0-1.0 trustworthiness score per answer
+- **Polished Web App**: FastAPI backend + responsive HTML/CSS/JS frontend with full agent trace
 
 ## Project Overview
 
 ### Abstract
 
-Large language models struggle to answer precise questions about private, domain-specific business documents without hallucinating unsupported facts. This project presents **FinSight Agent**, an explainable agentic RAG system designed for business document intelligence over corporate annual reports. Our system introduces a lightweight agentic decision layer that evaluates query clarity, retrieved context sufficiency, and evidence quality before synthesizing answers. Every response includes inline source citations, retrieved text chunks, and a transparency-first confidence indicator. We evaluate the system against a naive RAG baseline using 10–15 domain-specific test questions. Results demonstrate that the agentic layer improves answer faithfulness, citation precision, and appropriate abstention on unanswerable questions.
+Large language models struggle to answer precise questions about private, domain-specific business documents without hallucinating unsupported facts. **FinSight Agent** is an explainable multi-agent RAG system designed for business document intelligence. Beyond a baseline RAG pipeline, the system introduces (1) a 4-state agentic decision layer inspired by Self-RAG (Asai et al., 2024), (2) cross-encoder reranking aligned with production SOTA, (3) self-reflective answer critique, and (4) a 4-agent collaborative architecture inspired by ReAct (Yao et al., 2023), AutoGen (Microsoft, 2023), and IRCoT (Trivedi et al., 2023). Every response includes inline source citations, retrieved chunks, and a confidence indicator. The system is evaluated against naive and single-agent RAG baselines.
 
 ### Problem Statement
 
@@ -21,22 +31,69 @@ An agentic RAG system addresses all four problems.
 
 ## System Architecture
 
+### Multi-Agent RAG (SOTA Mode)
+
 ```
 [User Query]
     │
     ▼
-[Query Rewriter] → [Vector Store Retriever] → [Agentic Decision Router]
-                                                  ├─ ANSWER: sufficient context
-                                                  ├─ RETRIEVE: expand search
-                                                  ├─ CLARIFY: ask to rephrase
-                                                  └─ REFUSE: evidence insufficient
+[🎯 PLANNER AGENT] ── analyzes complexity (1-5)
+    │
+    ├──▶ Simple → [SINGLE_AGENT path]
+    │
+    ▼ Complex
+[🔨 DECOMPOSER AGENT] ── breaks Q into atomic sub-queries
     │
     ▼
-[Answer Generator] → [Citation Extractor] → [Confidence Scorer]
+[📚 RETRIEVER AGENT] ── two-stage retrieval per sub-Q
+    │  ├─ Vector search (top-N candidates)
+    │  └─ Cross-encoder reranker (top-K final)
+    │
+    ▼
+[Sub-Answer Generation] ── LLM call per sub-query
+    │
+    ▼
+[🧬 SYNTHESIZER AGENT] ── combines sub-answers
+    │
+    ▼
+[✅ VALIDATOR AGENT] ── verifies reasoning chain
+    │
+    ▼
+[Final Response with full agent trace]
+```
+
+### Single-Agent RAG (Agentic Mode)
+
+```
+[User Query]
+    │
+    ▼
+[Vector Search + Cross-Encoder Reranker]
+    │
+    ▼
+[Agentic 4-State Router]
+    ├─ ANSWER (sufficient context)
+    ├─ RETRIEVE (expand search)
+    ├─ CLARIFY (ambiguous)
+    └─ REFUSE (insufficient evidence)
+    │
+    ▼
+[Answer Generator + Self-Reflection Critic]
+    │
+    ▼
+[Citation Extractor + Confidence Scorer]
     │
     ▼
 [FastAPI Backend] ← [HTML/CSS/JS Frontend]
 ```
+
+### Three Operating Modes
+
+| Mode | Pipeline | Use Case |
+|------|---------|----------|
+| **Naive** | retrieve → generate | Baseline for evaluation |
+| **Agentic** | retrieve → route → generate → reflect | Single-agent SOTA |
+| **Multi-Agent** | plan → decompose → retrieve (N) → synthesize → validate | Complex multi-hop questions |
 
 ## Tech Stack
 
@@ -256,11 +313,44 @@ finsight-agent/
     └── finsight_presentation.pdf
 ```
 
+## Research References
+
+This project's architecture is aligned with recent SOTA RAG research:
+
+- **Self-RAG** — Asai et al. (2024). *Self-Reflective Retrieval-Augmented Generation*
+- **ReAct** — Yao et al. (2023). *Reasoning + Acting in Language Models*
+- **AutoGen** — Wu et al., Microsoft (2023). *Multi-Agent Conversation Framework*
+- **IRCoT** — Trivedi et al. (2023). *Interleaved Retrieval + Chain-of-Thought*
+- **Plan-and-Solve** — Wang et al. (2023). *Plan First, Then Execute*
+- **Self-Ask** — Press et al. (2022). *Question Decomposition*
+- **CRAG** — Yan et al. (2024). *Corrective Retrieval Augmented Generation*
+- **ColBERT** — Khattab & Zaharia (2020). *Cross-Encoder Reranking*
+
 ## Team Contributions
 
-- **Nandita** — FastAPI backend, HTML/CSS/JS frontend, prompt templates, final integration, README
-- **Anushree** — Agentic decision layer, source citations, confidence scoring, naive RAG baseline, evaluation design and analysis
-- **Jillian** — PDF collection, text extraction, cleaning, chunking, embeddings, vector store setup, data pipeline documentation, slides
+**Nandita Menon** — Project lead, integration
+- Multi-Agent RAG architecture (Planner, Decomposer, Synthesizer, Validator)
+- Agentic 4-state router (ANSWER/RETRIEVE/CLARIFY/REFUSE)
+- Cross-encoder reranker integration
+- Self-reflection critic
+- Citation extraction + confidence scoring
+- FastAPI backend + HTML/CSS/JS frontend with agent trace UI
+- Naive RAG baseline
+- Test question design
+- Demo coordination
+
+**Jillian Priscilla** — Data pipeline engineer
+- Statistical header/footer detection (frequency-based, >30% threshold)
+- Hyphen-break rejoining for cross-line words
+- Modern langchain-split-package layout (Python 3.14 compatible)
+- Document-based pipeline architecture
+- Data pipeline documentation
+
+**Anushree** — Evaluation lead (in progress)
+- Real annual report PDF curation
+- 3-way evaluation execution (naive vs agentic vs multi-agent)
+- Comparison table and visualization
+- Results analysis writeup
 
 ## Running Evaluation
 
