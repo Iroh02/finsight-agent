@@ -1,0 +1,81 @@
+{
+  "modes": [
+    "naive",
+    "agentic",
+    "multi_agent"
+  ],
+  "schema": [
+    "question",
+    "answer",
+    "contexts",
+    "ground_truth"
+  ],
+  "samples": {
+    "naive": [
+      {
+        "question_id": "F1",
+        "question": "What was Apple's total revenue in fiscal year 2025?",
+        "answer_preview": "Apple's total revenue in fiscal year 2025 was $416.161 billion, which includes $307.003 billion from products and $109.158 billion from services (Source: Apple_",
+        "n_contexts": 1,
+        "contexts_preview": [
+          "[Reconstructed citation] Source: Apple_10K_2025.pdf, Page: 32. Surrounding text: fiscal year 2025 was $416.161 billion, "
+        ],
+        "ground_truth": "$416 billion or similar from 10-K"
+      },
+      {
+        "question_id": "F2",
+        "question": "Who is the CEO of Apple Inc.?",
+        "answer_preview": "The CEO of Apple Inc. is Timothy D. Cook, as stated in the certifications of the Chief Executive Officer and Chief Financial Officer in the Apple 10-K report fo",
+        "n_contexts": 1,
+        "contexts_preview": [
+          "(no inline citations found in answer)"
+        ],
+        "ground_truth": "Tim Cook"
+      }
+    ],
+    "agentic": [
+      {
+        "question_id": "F1",
+        "question": "What was Apple's total revenue in fiscal year 2025?",
+        "answer_preview": "Apple's total revenue for fiscal year 2025 was $416.161 billion, which includes $307.003 billion from products and $109.158 billion from services (Source: Apple",
+        "n_contexts": 1,
+        "contexts_preview": [
+          "[Reconstructed citation] Source: Apple_10K_2025.pdf, Page: 32. Surrounding text: fiscal year 2025 was $416.161 billion, "
+        ],
+        "ground_truth": "$416 billion or similar from 10-K"
+      },
+      {
+        "question_id": "F2",
+        "question": "Who is the CEO of Apple Inc.?",
+        "answer_preview": "The CEO of Apple Inc. is Timothy D. Cook, as stated in the certifications of the Chief Executive Officer and Chief Financial Officer in the Annual Report of App",
+        "n_contexts": 1,
+        "contexts_preview": [
+          "(no inline citations found in answer)"
+        ],
+        "ground_truth": "Tim Cook"
+      }
+    ],
+    "multi_agent": [
+      {
+        "question_id": "F1",
+        "question": "What was Apple's total revenue in fiscal year 2025?",
+        "answer_preview": "Apple's total revenue for fiscal year 2025 was $416.161 billion, which includes $307.003 billion from products and $109.158 billion from services (Source: Apple",
+        "n_contexts": 1,
+        "contexts_preview": [
+          "[Reconstructed citation] Source: Apple_10K_2025.pdf, Page: 32. Surrounding text: fiscal year 2025 was $416.161 billion, "
+        ],
+        "ground_truth": "$416 billion or similar from 10-K"
+      },
+      {
+        "question_id": "F2",
+        "question": "Who is the CEO of Apple Inc.?",
+        "answer_preview": "The CEO of Apple Inc. is Timothy D. Cook, as stated in the certifications of the Chief Executive Officer in the Annual Report of Apple Inc. on Form 10-K for the",
+        "n_contexts": 1,
+        "contexts_preview": [
+          "(no inline citations found in answer)"
+        ],
+        "ground_truth": "Tim Cook"
+      }
+    ]
+  }
+}
