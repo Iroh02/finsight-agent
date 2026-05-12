@@ -1,0 +1,46 @@
+mode,question_id,category,question,faithfulness,answer_relevancy
+naive,F1,Factual,What was Apple's total revenue in fiscal year 2025?,1.0,nan
+naive,F2,Factual,Who is the CEO of Apple Inc.?,0.0,nan
+naive,F3,Factual,What was Amazon's net sales in Q1 2026?,1.0,nan
+naive,F4,Factual,What does NVIDIA primarily manufacture?,0.0,nan
+naive,F5,Factual,What is Apple's services segment revenue in 2025?,0.0,nan
+naive,C1,Comparison,Compare Apple's revenue from products vs services in 2025,0.0,nan
+naive,C2,Comparison,Compare Apple's and Amazon's revenue in their latest filings,1.0,nan
+naive,C3,Comparison,How does Apple's R&D investment compare to its operating income?,0.0,nan
+naive,C4,Comparison,What are the differences between Apple's and NVIDIA's business models?,0.0,nan
+naive,R1,Reasoning,What are the primary risk factors mentioned in Apple's 10-K?,0.0,nan
+naive,R2,Reasoning,"Based on Apple's filings, what is their strategy for the services business?",0.0,nan
+naive,R3,Reasoning,How does Apple manage supply chain risk according to its 10-K?,0.0,nan
+naive,N1,Should-Refuse,What did Tim Cook say on Twitter yesterday?,1.0,nan
+naive,N2,Should-Refuse,What is Apple's stock price right now?,1.0,nan
+naive,N3,Should-Refuse,What products will Apple launch in 2027?,0.6666666666666666,nan
+agentic,F1,Factual,What was Apple's total revenue in fiscal year 2025?,1.0,nan
+agentic,F2,Factual,Who is the CEO of Apple Inc.?,0.0,nan
+agentic,F3,Factual,What was Amazon's net sales in Q1 2026?,1.0,nan
+agentic,F4,Factual,What does NVIDIA primarily manufacture?,0.25,nan
+agentic,F5,Factual,What is Apple's services segment revenue in 2025?,0.0,nan
+agentic,C1,Comparison,Compare Apple's revenue from products vs services in 2025,0.75,nan
+agentic,C2,Comparison,Compare Apple's and Amazon's revenue in their latest filings,0.5,nan
+agentic,C3,Comparison,How does Apple's R&D investment compare to its operating income?,0.5,nan
+agentic,C4,Comparison,What are the differences between Apple's and NVIDIA's business models?,0.5,nan
+agentic,R1,Reasoning,What are the primary risk factors mentioned in Apple's 10-K?,0.25,nan
+agentic,R2,Reasoning,"Based on Apple's filings, what is their strategy for the services business?",0.3333333333333333,nan
+agentic,R3,Reasoning,How does Apple manage supply chain risk according to its 10-K?,0.5,nan
+agentic,N1,Should-Refuse,What did Tim Cook say on Twitter yesterday?,0.6666666666666666,nan
+agentic,N2,Should-Refuse,What is Apple's stock price right now?,0.6666666666666666,nan
+agentic,N3,Should-Refuse,What products will Apple launch in 2027?,0.5,nan
+multi_agent,F1,Factual,What was Apple's total revenue in fiscal year 2025?,1.0,nan
+multi_agent,F2,Factual,Who is the CEO of Apple Inc.?,0.0,nan
+multi_agent,F3,Factual,What was Amazon's net sales in Q1 2026?,1.0,nan
+multi_agent,F4,Factual,What does NVIDIA primarily manufacture?,0.25,nan
+multi_agent,F5,Factual,What is Apple's services segment revenue in 2025?,0.0,nan
+multi_agent,C1,Comparison,Compare Apple's revenue from products vs services in 2025,0.0,nan
+multi_agent,C2,Comparison,Compare Apple's and Amazon's revenue in their latest filings,0.0,nan
+multi_agent,C3,Comparison,How does Apple's R&D investment compare to its operating income?,0.0,nan
+multi_agent,C4,Comparison,What are the differences between Apple's and NVIDIA's business models?,0.0,nan
+multi_agent,R1,Reasoning,What are the primary risk factors mentioned in Apple's 10-K?,0.0,nan
+multi_agent,R2,Reasoning,"Based on Apple's filings, what is their strategy for the services business?",0.0,nan
+multi_agent,R3,Reasoning,How does Apple manage supply chain risk according to its 10-K?,0.5,nan
+multi_agent,N1,Should-Refuse,What did Tim Cook say on Twitter yesterday?,1.0,nan
+multi_agent,N2,Should-Refuse,What is Apple's stock price right now?,0.6666666666666666,nan
+multi_agent,N3,Should-Refuse,What products will Apple launch in 2027?,0.0,nan
