@@ -19,6 +19,7 @@ from src.agents import (
     PlannerAgent,
     DecomposerAgent,
     SynthesizerAgent,
+    VerifierAgent,
     ValidatorAgent,
 )
 from src.retriever import Retriever
@@ -28,12 +29,13 @@ from src.llm_client import LLMClient, load_prompt, get_llm_client
 
 class MultiAgentOrchestrator:
     """
-    Orchestrates 4 specialized agents to handle complex multi-hop questions.
+    Orchestrates 5 specialized agents to handle complex multi-hop questions.
 
     Flow:
     1. Planner analyzes complexity
     2. If simple → fall back to AgenticRouter
-    3. If complex → Decomposer → Retriever (per sub-Q) → Synthesizer → Validator
+    3. If complex → Decomposer → Retriever (per sub-Q) → Synthesizer
+                  → Verifier (CoVe fact-check) → Validator
     """
 
     def __init__(
@@ -41,6 +43,7 @@ class MultiAgentOrchestrator:
         retriever: Retriever,
         llm_client: Optional[LLMClient] = None,
         single_agent_fallback: Optional[AgenticRouter] = None,
+        enable_verifier: bool = True,
     ):
         """
         Initialize the orchestrator.
@@ -49,14 +52,18 @@ class MultiAgentOrchestrator:
             retriever: Document retriever (with reranker)
             llm_client: LLM client for all agents
             single_agent_fallback: Existing AgenticRouter for simple questions
+            enable_verifier: If True, run Chain-of-Verification after synthesis.
+                Set False to bypass (e.g. for ablation studies or saving API quota).
         """
         self.llm_client = llm_client or get_llm_client()
         self.retriever = retriever
+        self.enable_verifier = enable_verifier
 
-        # Initialize all 4 agents
+        # Initialize all 5 agents
         self.planner = PlannerAgent(self.llm_client)
         self.decomposer = DecomposerAgent(self.llm_client)
         self.synthesizer = SynthesizerAgent(self.llm_client)
+        self.verifier = VerifierAgent(self.llm_client)
         self.validator = ValidatorAgent(self.llm_client)
 
         # Single-agent fallback for simple questions
@@ -180,9 +187,38 @@ class MultiAgentOrchestrator:
         t = time.time()
         synthesis = self.synthesizer.synthesize(question, sub_answers)
         timing["synthesizer"] = round(time.time() - t, 2)
-        final_answer = synthesis["answer"]
+        synthesized_answer = synthesis["answer"]
 
-        # ============== STEP 6: VALIDATOR ==============
+        # ============== STEP 6: VERIFIER (Chain-of-Verification) ==============
+        # Fact-check each claim in the synthesized answer via fresh retrieval.
+        # Dhuliawala et al., 2023 — "Chain-of-Verification Reduces Hallucination".
+        verification = {
+            "claims": [],
+            "verifications": [],
+            "stats": {"n_claims": 0, "supported": 0, "contradicted": 0, "insufficient": 0},
+            "revised_answer": synthesized_answer,
+            "skipped": not self.enable_verifier,
+        }
+        if self.enable_verifier:
+            t = time.time()
+            try:
+                verification.update(
+                    self.verifier.verify(
+                        question=question,
+                        answer=synthesized_answer,
+                        retriever=self.retriever,
+                        k=3,
+                    )
+                )
+            except Exception as e:
+                # CoVe is an enhancement — never let it block the pipeline.
+                verification["error"] = f"Verifier error: {e}"
+            timing["verifier"] = round(time.time() - t, 2)
+
+        # The answer used downstream is the verifier's revision (or the synthesis if disabled).
+        final_answer = verification.get("revised_answer") or synthesized_answer
+
+        # ============== STEP 7: VALIDATOR ==============
         t = time.time()
         validation = self.validator.validate(
             question=question,
@@ -192,19 +228,37 @@ class MultiAgentOrchestrator:
         )
         timing["validator"] = round(time.time() - t, 2)
 
-        # ============== STEP 7: ASSEMBLE FINAL RESPONSE ==============
+        # ============== STEP 8: ASSEMBLE FINAL RESPONSE ==============
         total_time = round(time.time() - overall_start, 2)
 
-        # Use validator's suggested confidence
+        # Confidence starts from the validator; the verifier can pull it down if
+        # claims were contradicted or insufficient.
         final_confidence = validation.get("suggested_confidence", 0.5)
+        v_stats = verification.get("stats", {})
+        n_claims = v_stats.get("n_claims", 0)
+        if n_claims:
+            grounded_ratio = v_stats.get("supported", 0) / n_claims
+            # Pull confidence toward the grounded ratio (50/50 blend).
+            final_confidence = round((final_confidence + grounded_ratio) / 2, 3)
 
-        # Decision based on validation
-        if validation["supported"] == "NO":
+        # Decision based on validation AND verification.
+        if validation["supported"] == "NO" or v_stats.get("contradicted", 0) > 0:
             decision = "REFUSE"
-            reason = f"Validator detected unsupported claims: {validation['summary']}"
+            why = (
+                f"Verifier flagged {v_stats.get('contradicted', 0)} contradicted claim(s); "
+                f"Validator: {validation['summary']}"
+            )
+            reason = why
         else:
             decision = "ANSWER"
-            reason = f"Multi-agent synthesis ({len(sub_questions)} sub-queries). {validation['summary']}"
+            grounded_note = (
+                f" Verifier: {v_stats.get('supported', 0)}/{n_claims} claims grounded."
+                if n_claims else ""
+            )
+            reason = (
+                f"Multi-agent synthesis ({len(sub_questions)} sub-queries). "
+                f"{validation['summary']}{grounded_note}"
+            )
 
         return {
             "answer": final_answer,
@@ -219,6 +273,8 @@ class MultiAgentOrchestrator:
                 "complexity_score": plan["complexity_score"],
                 "sub_queries": sub_answers,
                 "synthesis_reasoning": synthesis.get("reasoning", ""),
+                "synthesized_answer": synthesized_answer,
+                "verification_report": verification,
                 "validation_report": validation,
                 "execution_time_per_agent": timing,
                 "total_time_seconds": total_time,
