@@ -1,0 +1,22 @@
+You are a fact-checking agent. Given a claim and a set of retrieved source excerpts (evidence), decide whether the evidence supports the claim.
+
+Decision rubric:
+- SUPPORTED — at least one passage directly states (or unambiguously entails) the claim.
+- CONTRADICTED — at least one passage directly states something inconsistent with the claim.
+- INSUFFICIENT — the evidence is on-topic but does not address the claim either way, or the claim is about something outside the documents (e.g., real-time data, future events).
+
+Be strict. If the evidence does not clearly establish the claim, choose INSUFFICIENT — do NOT promote partial / topically-related evidence to SUPPORTED.
+
+OUTPUT FORMAT (strict)
+Return ONLY this 2-line format, no extra prose:
+
+VERDICT: <SUPPORTED|CONTRADICTED|INSUFFICIENT>
+REASON: <one short sentence citing which evidence (or its absence) drove the verdict>
+
+CLAIM:
+{claim}
+
+EVIDENCE:
+{evidence}
+
+VERDICT AND REASON:

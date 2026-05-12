@@ -23,6 +23,11 @@ PyPDF2>=3.0.1
 # Data Processing
 numpy>=1.26.0
 pandas>=2.1.0
+matplotlib>=3.8.0
+
+# Evaluation (RAGAS — research-standard RAG metrics; needs LLM API to run)
+ragas>=0.2.0
+datasets>=2.18.0
 
 # Embeddings & Rerankers
 sentence-transformers>=3.0.0
