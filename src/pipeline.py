@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Literal
 # Data pipeline imports (Jillian's responsibility)
 from src.loader import PDFLoader, load_directory
 from src.cleaner import clean_text
-from src.chunker import TextChunker
+from src.chunker import TextChunker, ParentChildChunker, SemanticChunker
 from src.embedder import get_embedder
 from src.vectorstore import get_vectorstore
 
@@ -29,6 +29,7 @@ class RAGPipeline:
         embedding_provider: str = "openai",
         llm_client=None,
         use_heuristic_confidence: bool = False,
+        chunking_strategy: str = "standard",
     ):
         """
         Initialize RAG pipeline.
@@ -38,6 +39,7 @@ class RAGPipeline:
             embedding_provider: "openai" or "huggingface"
             llm_client: LLM client instance
             use_heuristic_confidence: Use heuristic vs LLM confidence scoring
+            chunking_strategy: "standard" | "parent_child" | "semantic"
         """
         self.vectorstore_type = vectorstore_type
         self.embedding_provider = embedding_provider
@@ -56,7 +58,12 @@ class RAGPipeline:
             llm_client, use_heuristic=use_heuristic_confidence
         )
 
-        self.chunker = TextChunker()
+        if chunking_strategy == "parent_child":
+            self.chunker = ParentChildChunker()
+        elif chunking_strategy == "semantic":
+            self.chunker = SemanticChunker()
+        else:
+            self.chunker = TextChunker()
 
     def ingest(self, data_directory: str = "./data/raw") -> Dict:
         """

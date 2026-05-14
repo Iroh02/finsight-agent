@@ -114,13 +114,23 @@ class ChromaVectorStore(VectorStore):
             for i, doc in enumerate(documents)
         ]
 
-        # Build metadata (Chroma requires non-None values)
+        # Build metadata (Chroma requires non-None, non-empty string values)
         metadatas = []
         for doc in documents:
             metadata = {
                 "source": str(doc.get("source", "unknown")),
                 "page": int(doc.get("page", 0)) if doc.get("page") else 0,
                 "chunk_index": int(doc.get("chunk_index", 0)),
+                # Enriched metadata (#48 — metadata enrichment)
+                "company": str(doc.get("company", "Unknown")),
+                "year": int(doc.get("year", 0)) if doc.get("year") else 0,
+                "quarter": str(doc.get("quarter", "")),
+                "doc_type": str(doc.get("doc_type", "report")),
+                "fiscal_period": str(doc.get("fiscal_period", "unknown")),
+                # Parent-child chunking fields (#45)
+                "chunk_type": str(doc.get("chunk_type", "standard")),
+                "parent_id": str(doc.get("parent_id", "")),
+                "parent_text": str(doc.get("parent_text", ""))[:500],
             }
             metadatas.append(metadata)
 
@@ -153,12 +163,93 @@ class ChromaVectorStore(VectorStore):
         formatted = []
         if results["documents"] and results["documents"][0]:
             for i in range(len(results["documents"][0])):
+                meta = results["metadatas"][0][i]
                 doc = {
                     "text": results["documents"][0][i],
-                    "source": results["metadatas"][0][i].get("source", "unknown"),
-                    "page": results["metadatas"][0][i].get("page", None),
-                    "chunk_index": results["metadatas"][0][i].get("chunk_index", 0),
-                    # Chroma returns distance, convert to similarity score (1 - distance)
+                    "source": meta.get("source", "unknown"),
+                    "page": meta.get("page", None),
+                    "chunk_index": meta.get("chunk_index", 0),
+                    # Enriched metadata
+                    "company": meta.get("company", "Unknown"),
+                    "year": meta.get("year", 0),
+                    "quarter": meta.get("quarter", ""),
+                    "doc_type": meta.get("doc_type", "report"),
+                    "fiscal_period": meta.get("fiscal_period", "unknown"),
+                    # Parent-child fields
+                    "chunk_type": meta.get("chunk_type", "standard"),
+                    "parent_id": meta.get("parent_id", ""),
+                    "parent_text": meta.get("parent_text", ""),
+                    "score": round(1 - results["distances"][0][i], 4)
+                    if results["distances"]
+                    else 0.0,
+                }
+                formatted.append(doc)
+        return formatted
+
+    def similarity_search_filtered(
+        self,
+        query: str,
+        k: int = 5,
+        company: Optional[str] = None,
+        year: Optional[int] = None,
+        doc_type: Optional[str] = None,
+    ) -> List[Dict]:
+        """
+        Filtered similarity search for temporal-aware retrieval.
+
+        Applies Chroma where-clause filters on enriched metadata fields before
+        scoring by embedding similarity.  Any combination of filters is supported.
+
+        Args:
+            query: Search query text
+            k: Number of results to return
+            company: Filter to a specific company (e.g., "Apple")
+            year: Filter to a specific fiscal year (e.g., 2025)
+            doc_type: Filter to a document type (e.g., "10-K")
+
+        Returns:
+            Same format as similarity_search.
+        """
+        query_embedding = self.embedder.embed_single(query)
+
+        # Build Chroma where-clause (AND of all provided filters)
+        conditions = []
+        if company:
+            conditions.append({"company": {"$eq": company}})
+        if year:
+            conditions.append({"year": {"$eq": year}})
+        if doc_type:
+            conditions.append({"doc_type": {"$eq": doc_type}})
+
+        where = None
+        if len(conditions) == 1:
+            where = conditions[0]
+        elif len(conditions) > 1:
+            where = {"$and": conditions}
+
+        results = self.collection.query(
+            query_embeddings=[query_embedding],
+            n_results=k,
+            where=where,
+        )
+
+        formatted = []
+        if results["documents"] and results["documents"][0]:
+            for i in range(len(results["documents"][0])):
+                meta = results["metadatas"][0][i]
+                doc = {
+                    "text": results["documents"][0][i],
+                    "source": meta.get("source", "unknown"),
+                    "page": meta.get("page", None),
+                    "chunk_index": meta.get("chunk_index", 0),
+                    "company": meta.get("company", "Unknown"),
+                    "year": meta.get("year", 0),
+                    "quarter": meta.get("quarter", ""),
+                    "doc_type": meta.get("doc_type", "report"),
+                    "fiscal_period": meta.get("fiscal_period", "unknown"),
+                    "chunk_type": meta.get("chunk_type", "standard"),
+                    "parent_id": meta.get("parent_id", ""),
+                    "parent_text": meta.get("parent_text", ""),
                     "score": round(1 - results["distances"][0][i], 4)
                     if results["distances"]
                     else 0.0,
