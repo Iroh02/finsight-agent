@@ -1,8 +1,9 @@
 """Multi-agent RAG system package.
 
-Contains 5 specialized agents that collaborate to answer complex questions:
+Contains 6 specialized agents that collaborate to answer complex questions:
 - PlannerAgent: Analyzes question complexity and decides routing strategy
 - DecomposerAgent: Breaks complex questions into atomic sub-queries
+- ConflictDetectorAgent: Surfaces contradictions across documents/filings
 - SynthesizerAgent: Combines sub-answers into a unified response
 - VerifierAgent: Chain-of-Verification (CoVe) — fact-checks claims via re-retrieval
 - ValidatorAgent: Validates the multi-hop reasoning chain
@@ -15,6 +16,7 @@ from src.agents.decomposer import DecomposerAgent
 from src.agents.synthesizer import SynthesizerAgent
 from src.agents.verifier import VerifierAgent
 from src.agents.validator import ValidatorAgent
+from src.agents.conflict_detector import ConflictDetectorAgent
 
 __all__ = [
     "PlannerAgent",
@@ -22,4 +24,5 @@ __all__ = [
     "SynthesizerAgent",
     "VerifierAgent",
     "ValidatorAgent",
+    "ConflictDetectorAgent",
 ]
