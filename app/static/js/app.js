@@ -242,10 +242,22 @@ function displayResponse(response) {
     confidenceValue.textContent = `${confidencePercent}%`;
     updateConfidenceBadge(confidence);
 
-    // Decision
+    // Decision (legacy 4-state)
     decisionState.textContent = response.decision;
     decisionState.className = `decision-badge ${response.decision}`;
     decisionReason.textContent = response.reason;
+
+    // Extended recommendation (7-state, when different from legacy decision)
+    renderRecommendation(response.recommendation, response.recommendation_description, response.decision);
+
+    // FinSight Trust Score (composite 0-100 + 6 component breakdown)
+    renderTrustScore(response.trust_score);
+
+    // Temporal scope badges (FinSight novel: temporal-aware retrieval)
+    renderTemporalContext(response.temporal_context);
+
+    // Cross-doc conflicts (FinSight novel: conflict detection)
+    renderConflictReport(response.conflict_report);
 
     // Citations
     renderCitations(response.citations);
@@ -366,6 +378,182 @@ function renderAgentTrace(trace) {
     }
 
     content.innerHTML = planner + subQueriesHtml + synthHtml + validationHtml + timingHtml;
+}
+
+/**
+ * Render the extended 7-state recommendation chip next to the legacy
+ * decision. Hidden when the extended recommendation is identical to the
+ * legacy decision (e.g. plain ANSWER).
+ */
+function renderRecommendation(recommendation, description, baseDecision) {
+    const chip = document.getElementById('recommendation-state');
+    const descRow = document.getElementById('recommendation-description-row');
+    const descEl = document.getElementById('recommendation-description');
+    if (!chip || !recommendation || recommendation === baseDecision) {
+        if (chip) chip.classList.add('hidden');
+        if (descRow) descRow.classList.add('hidden');
+        return;
+    }
+    chip.textContent = recommendation;
+    chip.className = `recommendation-badge ${recommendation}`;
+    chip.classList.remove('hidden');
+    if (description && descEl && descRow) {
+        descEl.textContent = description;
+        descRow.classList.remove('hidden');
+    }
+}
+
+/**
+ * Render the FinSight Trust Score card — composite headline + 6 weighted
+ * components shown as horizontal bars with detail text.
+ */
+function renderTrustScore(trust) {
+    const card = document.getElementById('trust-card');
+    if (!card || !trust) {
+        if (card) card.classList.add('hidden');
+        return;
+    }
+    card.classList.remove('hidden');
+
+    document.getElementById('trust-composite').textContent = trust.composite;
+    const bandEl = document.getElementById('trust-band');
+    bandEl.textContent = trust.band.replace(/_/g, ' ');
+    bandEl.className = `trust-band-badge band-${trust.band}`;
+    document.getElementById('trust-band-desc').textContent = trust.band_description || '';
+
+    const compsEl = document.getElementById('trust-components');
+    if (!compsEl) return;
+
+    const rows = (trust.components || []).map((c) => {
+        const pct = Math.round((c.value || 0) * 100);
+        const weightPct = Math.round((c.weight || 0) * 100);
+        const contribPct = Math.round((c.weighted || 0) * 100);
+        return `
+            <div class="trust-component-row">
+                <div class="trust-component-header">
+                    <span class="trust-component-name">${escapeHtml(c.name)}</span>
+                    <span class="trust-component-meta">
+                        <span class="trust-component-value">${pct}%</span>
+                        <span class="trust-component-weight">× ${weightPct}% weight</span>
+                        <span class="trust-component-contrib">= +${contribPct} pts</span>
+                    </span>
+                </div>
+                <div class="trust-component-bar">
+                    <div class="trust-component-fill" style="width: ${pct}%"></div>
+                </div>
+                ${c.detail ? `<div class="trust-component-detail">${escapeHtml(c.detail)}</div>` : ''}
+            </div>
+        `;
+    });
+
+    compsEl.innerHTML = rows.join('');
+}
+
+/**
+ * Render detected temporal/company scope as a set of badges.
+ * Surfaces FinSight's temporal-aware retrieval to the user.
+ */
+function renderTemporalContext(contextList) {
+    const card = document.getElementById('temporal-card');
+    const content = document.getElementById('temporal-content');
+    const countEl = document.getElementById('temporal-count');
+    if (!card || !content) return;
+
+    if (!contextList || contextList.length === 0) {
+        card.classList.add('hidden');
+        return;
+    }
+    card.classList.remove('hidden');
+    countEl.textContent = contextList.length;
+
+    content.innerHTML = contextList.map((tc) => {
+        const labelParts = [];
+        if (tc.company) labelParts.push(`<span class="temporal-pill company">🏢 ${escapeHtml(tc.company)}</span>`);
+        if (tc.year) {
+            const qtr = tc.quarter ? ` ${escapeHtml(tc.quarter)}` : '';
+            labelParts.push(`<span class="temporal-pill year">📅 FY${tc.year}${qtr}</span>`);
+        } else if (tc.quarter) {
+            labelParts.push(`<span class="temporal-pill year">📅 ${escapeHtml(tc.quarter)}</span>`);
+        }
+        if (tc.doc_type) labelParts.push(`<span class="temporal-pill doctype">📋 ${escapeHtml(tc.doc_type)}</span>`);
+        if (tc.freshness) labelParts.push(`<span class="temporal-pill freshness">⚡ ${escapeHtml(tc.freshness)}</span>`);
+
+        const subQ = tc.sub_question ? `<div class="temporal-subq">${escapeHtml(tc.sub_question)}</div>` : '';
+        const note = tc.note ? `<div class="temporal-note">${escapeHtml(tc.note)}</div>` : '';
+        return `
+            <div class="temporal-item">
+                ${subQ}
+                <div class="temporal-pills">${labelParts.join('')}</div>
+                ${note}
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Render cross-document conflict report.
+ * FinSight novel feature: surface contradictions across filings/companies.
+ */
+function renderConflictReport(report) {
+    const card = document.getElementById('conflict-card');
+    const content = document.getElementById('conflict-content');
+    const countEl = document.getElementById('conflict-count');
+    if (!card || !content) return;
+
+    if (!report) {
+        card.classList.add('hidden');
+        return;
+    }
+    const conflicts = report.conflicts || [];
+
+    if (conflicts.length === 0) {
+        // Suppress card entirely when nothing to report
+        if (report.skipped || report.pairs_checked === 0) {
+            card.classList.add('hidden');
+            return;
+        }
+        // Otherwise show a green "no conflicts" pill
+        card.classList.remove('hidden');
+        countEl.textContent = '0';
+        content.innerHTML = `
+            <div class="conflict-clean">
+                ✓ ${report.pairs_checked} cross-document pair(s) checked. No factual conflicts detected.
+            </div>
+        `;
+        return;
+    }
+
+    card.classList.remove('hidden');
+    countEl.textContent = conflicts.length;
+
+    content.innerHTML = conflicts.map((c) => {
+        const sev = (c.severity || 'MEDIUM').toUpperCase();
+        const s1 = c.source_1 || {};
+        const s2 = c.source_2 || {};
+        const s1Label = [s1.company, s1.period, s1.source].filter(Boolean).join(' · ');
+        const s2Label = [s2.company, s2.period, s2.source].filter(Boolean).join(' · ');
+        return `
+            <div class="conflict-item severity-${sev}">
+                <div class="conflict-header">
+                    <span class="conflict-severity">${sev}</span>
+                    <span class="conflict-type">${escapeHtml(c.type || '')}</span>
+                    <span class="conflict-fact">${escapeHtml(c.shared_fact || '')}</span>
+                </div>
+                <div class="conflict-pair">
+                    <div class="conflict-side">
+                        <div class="conflict-src">${escapeHtml(s1Label)}</div>
+                        <div class="conflict-claim">${escapeHtml(c.claim_1 || '')}</div>
+                    </div>
+                    <div class="conflict-vs">vs</div>
+                    <div class="conflict-side">
+                        <div class="conflict-src">${escapeHtml(s2Label)}</div>
+                        <div class="conflict-claim">${escapeHtml(c.claim_2 || '')}</div>
+                    </div>
+                </div>
+                <div class="conflict-explanation">${escapeHtml(c.explanation || '')}</div>
+            </div>
+        `;
+    }).join('');
 }
 
 /**

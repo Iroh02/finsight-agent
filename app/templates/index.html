@@ -96,9 +96,51 @@
                             <h3>System Decision</h3>
                         </div>
                         <div class="decision-info">
-                            <p><strong>Decision:</strong> <span id="decision-state" class="decision-badge"></span></p>
+                            <p>
+                                <strong>Decision:</strong> <span id="decision-state" class="decision-badge"></span>
+                                <span id="recommendation-state" class="recommendation-badge hidden"></span>
+                            </p>
+                            <p id="recommendation-description-row" class="hidden"><strong>Recommendation:</strong> <span id="recommendation-description"></span></p>
                             <p><strong>Reason:</strong> <span id="decision-reason"></span></p>
                         </div>
+                    </div>
+
+                    <!-- FinSight Trust Score Card -->
+                    <div class="card trust-card hidden" id="trust-card">
+                        <div class="card-header">
+                            <h3>📊 FinSight Trust Score</h3>
+                            <span class="trust-band-badge" id="trust-band">--</span>
+                        </div>
+                        <div class="trust-content">
+                            <div class="trust-headline">
+                                <div class="trust-composite" id="trust-composite">--</div>
+                                <div class="trust-headline-meta">
+                                    <div class="trust-band-desc" id="trust-band-desc"></div>
+                                    <div class="trust-formula">Weighted composite of 6 reliability signals</div>
+                                </div>
+                            </div>
+                            <div class="trust-components" id="trust-components">
+                                <!-- Filled by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Temporal Context Card (only shown when temporal filters detected) -->
+                    <div class="card temporal-card hidden" id="temporal-card">
+                        <div class="card-header">
+                            <h3>🗓️ Temporal Scope</h3>
+                            <span class="count-badge" id="temporal-count">0</span>
+                        </div>
+                        <div id="temporal-content" class="temporal-content"></div>
+                    </div>
+
+                    <!-- Conflict Detection Card (only shown when conflicts surfaced) -->
+                    <div class="card conflict-card hidden" id="conflict-card">
+                        <div class="card-header">
+                            <h3>⚠️ Cross-Document Conflicts</h3>
+                            <span class="count-badge" id="conflict-count">0</span>
+                        </div>
+                        <div id="conflict-content" class="conflict-content"></div>
                     </div>
 
                     <!-- Multi-Agent Trace Card (only shown for multi_agent mode) -->
