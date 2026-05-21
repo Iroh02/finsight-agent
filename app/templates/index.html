@@ -19,13 +19,23 @@
                 <h1>FinSight Agent</h1>
                 <p class="subtitle">Explainable RAG for Business Documents</p>
             </div>
-            <div class="mode-toggle">
-                <label for="mode-select">Mode:</label>
-                <select id="mode-select">
-                    <option value="multi_agent">Multi-Agent RAG (SOTA)</option>
-                    <option value="agentic" selected>Agentic RAG</option>
-                    <option value="naive">Naive RAG (Baseline)</option>
-                </select>
+            <div class="header-controls">
+                <div class="mode-toggle">
+                    <label for="mode-select">Mode:</label>
+                    <select id="mode-select">
+                        <option value="multi_agent">Multi-Agent RAG (SOTA)</option>
+                        <option value="agentic" selected>Agentic RAG</option>
+                        <option value="naive">Naive RAG (Baseline)</option>
+                    </select>
+                </div>
+                <div class="role-toggle">
+                    <label for="role-select">Role:</label>
+                    <select id="role-select">
+                        <option value="analyst" selected>👤 Analyst</option>
+                        <option value="reviewer">🔍 Reviewer</option>
+                        <option value="auditor">📋 Auditor</option>
+                    </select>
+                </div>
             </div>
         </header>
 
@@ -62,6 +72,8 @@
 
             <!-- Main Content -->
             <main class="content">
+                <!-- ============ ANALYST VIEW (query console) ============ -->
+                <div id="analyst-view">
                 <!-- Question Input -->
                 <div class="question-section">
                     <textarea
@@ -83,8 +95,11 @@
                     <div class="card answer-card">
                         <div class="card-header">
                             <h2>Answer</h2>
-                            <div class="confidence-badge" id="confidence-badge">
-                                <span id="confidence-value">--</span>
+                            <div class="answer-header-actions">
+                                <button id="brief-button" class="brief-button" title="Export this analysis as a printable research brief">📄 Generate Brief</button>
+                                <div class="confidence-badge" id="confidence-badge">
+                                    <span id="confidence-value">--</span>
+                                </div>
                             </div>
                         </div>
                         <p id="answer-text" class="answer-text"></p>
@@ -196,6 +211,30 @@
                     <p id="error-message"></p>
                     <button id="error-dismiss" class="error-dismiss">Dismiss</button>
                 </div>
+                </div><!-- /#analyst-view -->
+
+                <!-- ============ REVIEWER VIEW (review queue) ============ -->
+                <div id="reviewer-view" class="hidden">
+                    <div class="view-intro">
+                        <h2>🔍 Review Queue</h2>
+                        <p class="view-intro-text">Answers flagged for human review — escalations, cross-document conflicts, hedged answers, and low-trust results. Approve or dispute each before it is relied upon.</p>
+                    </div>
+                    <div id="review-queue" class="review-queue">
+                        <p class="empty-state">No answers awaiting review. Run some queries in Analyst mode.</p>
+                    </div>
+                </div><!-- /#reviewer-view -->
+
+                <!-- ============ AUDITOR VIEW (audit log) ============ -->
+                <div id="auditor-view" class="hidden">
+                    <div class="view-intro">
+                        <h2>📋 Audit Log</h2>
+                        <p class="view-intro-text">Read-only record of every query this session — question, mode, recommendation, Trust Score, and review status. A client-side slice of the <code>query_audit</code> table from the governance spec.</p>
+                        <button id="clear-audit-button" class="clear-button">Clear Audit Log</button>
+                    </div>
+                    <div id="audit-log" class="audit-log">
+                        <p class="empty-state">Audit log is empty.</p>
+                    </div>
+                </div><!-- /#auditor-view -->
 
             </main>
         </div>
