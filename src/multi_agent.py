@@ -1,7 +1,8 @@
 """Multi-Agent RAG Orchestrator.
 
-Coordinates 4 specialized agents (Planner, Decomposer, Synthesizer, Validator)
-along with the existing single-agent Retriever to handle complex multi-hop questions.
+Coordinates 6 specialized agents (Planner, Decomposer, ConflictDetector,
+Synthesizer, Verifier, Validator) along with the existing single-agent
+Retriever to handle complex multi-hop questions over corporate filings.
 
 Architecture inspired by:
 - ReAct (Yao et al., 2023)
@@ -9,6 +10,11 @@ Architecture inspired by:
 - IRCoT (Trivedi et al., 2023)
 - Plan-and-Solve (Wang et al., 2023)
 - Self-RAG (Asai et al., 2024)
+- Chain-of-Verification (Dhuliawala et al., 2023)
+
+Novel additions (FinSight):
+- Cross-document conflict detection on sub-answer pairs
+- Temporal-aware retrieval via metadata filters (handled by retriever)
 """
 
 import time
@@ -21,6 +27,7 @@ from src.agents import (
     SynthesizerAgent,
     VerifierAgent,
     ValidatorAgent,
+    ConflictDetectorAgent,
 )
 from src.retriever import Retriever
 from src.agent import AgenticRouter
@@ -44,6 +51,7 @@ class MultiAgentOrchestrator:
         llm_client: Optional[LLMClient] = None,
         single_agent_fallback: Optional[AgenticRouter] = None,
         enable_verifier: bool = True,
+        enable_conflict_detection: bool = True,
     ):
         """
         Initialize the orchestrator.
@@ -54,14 +62,18 @@ class MultiAgentOrchestrator:
             single_agent_fallback: Existing AgenticRouter for simple questions
             enable_verifier: If True, run Chain-of-Verification after synthesis.
                 Set False to bypass (e.g. for ablation studies or saving API quota).
+            enable_conflict_detection: If True, run cross-document conflict
+                detection between sub-answers from different filings.
         """
         self.llm_client = llm_client or get_llm_client()
         self.retriever = retriever
         self.enable_verifier = enable_verifier
+        self.enable_conflict_detection = enable_conflict_detection
 
-        # Initialize all 5 agents
+        # Initialize all 6 agents
         self.planner = PlannerAgent(self.llm_client)
         self.decomposer = DecomposerAgent(self.llm_client)
+        self.conflict_detector = ConflictDetectorAgent(self.llm_client)
         self.synthesizer = SynthesizerAgent(self.llm_client)
         self.verifier = VerifierAgent(self.llm_client)
         self.validator = ValidatorAgent(self.llm_client)
@@ -101,10 +113,35 @@ class MultiAgentOrchestrator:
         plan = self.planner.analyze(question)
         timing["planner"] = round(time.time() - t, 2)
 
+        # Multi-entity guard. Comparison questions ("Apple vs Nvidia", "2023 vs 2024")
+        # must always exercise the full pipeline so each entity gets its own
+        # filtered retrieval and the conflict detector has cross-doc pairs to
+        # examine. The planner sometimes under-rates these as complexity-2.
+        forced = self._force_multi_agent_if_multi_entity(question)
+        if forced:
+            if plan.get("strategy") != "MULTI_AGENT":
+                plan["strategy"] = "MULTI_AGENT"
+                plan["reasoning"] = (
+                    f"[Multi-entity override] {forced} "
+                    f"Original planner verdict: {plan.get('reasoning', '')}"
+                )
+                # Bump complexity score so the trace reflects the override.
+                plan["complexity_score"] = max(int(plan.get("complexity_score", 1)), 4)
+
         # ============== STEP 2: ROUTING DECISION ==============
         if plan["strategy"] == "SINGLE_AGENT":
             # Use existing single-agent (faster path)
             result = self.single_agent.route_and_answer(question, k=k)
+            single_temporal = self._collect_temporal_context([question])
+            result["conflict_report"] = {
+                "conflicts": [],
+                "pairs_checked": 0,
+                "pairs_skipped": 0,
+                "stats": {"n_conflicts": 0, "by_severity": {"HIGH": 0, "MEDIUM": 0, "LOW": 0}},
+                "skipped": True,
+                "reason": "Single-agent path — no cross-doc comparison possible.",
+            }
+            result["temporal_context"] = single_temporal
             result["multi_agent_trace"] = {
                 "planner_decision": "SINGLE_AGENT",
                 "planner_reasoning": plan["reasoning"],
@@ -112,6 +149,8 @@ class MultiAgentOrchestrator:
                 "sub_queries": [],
                 "synthesis_reasoning": "Not applicable - single agent used",
                 "validation_report": {},
+                "conflict_report": result["conflict_report"],
+                "temporal_context": single_temporal,
                 "execution_time_per_agent": timing,
             }
             return result
@@ -124,6 +163,16 @@ class MultiAgentOrchestrator:
         # Safety: if decomposer returns empty or single, fall back to single agent
         if not sub_questions or len(sub_questions) <= 1:
             result = self.single_agent.route_and_answer(question, k=k)
+            single_temporal = self._collect_temporal_context([question])
+            result["conflict_report"] = {
+                "conflicts": [],
+                "pairs_checked": 0,
+                "pairs_skipped": 0,
+                "stats": {"n_conflicts": 0, "by_severity": {"HIGH": 0, "MEDIUM": 0, "LOW": 0}},
+                "skipped": True,
+                "reason": "Decomposer fallback — single sub-query, no cross-doc pairs.",
+            }
+            result["temporal_context"] = single_temporal
             result["multi_agent_trace"] = {
                 "planner_decision": "MULTI_AGENT_REQUESTED",
                 "planner_reasoning": plan["reasoning"],
@@ -132,6 +181,8 @@ class MultiAgentOrchestrator:
                 "sub_queries": [],
                 "synthesis_reasoning": "Fell back to single agent",
                 "validation_report": {},
+                "conflict_report": result["conflict_report"],
+                "temporal_context": single_temporal,
                 "execution_time_per_agent": timing,
             }
             return result
@@ -182,6 +233,28 @@ class MultiAgentOrchestrator:
         # Restore order
         sub_answers = [sub_answers_dict[i] for i in sorted(sub_answers_dict.keys())]
         timing["retrieval_and_subanswers"] = round(time.time() - t, 2)
+
+        # Per-sub-query temporal filter (if retriever is temporal-aware)
+        temporal_per_sub = self._collect_temporal_context(sub_questions)
+
+        # ============== STEP 4.5: CONFLICT DETECTOR ==============
+        # Surfaces contradictions between sub-answers from different documents
+        # (different company OR different fiscal period). LLM-based pairwise check
+        # — capped at MAX_PAIRS to bound cost. Skipped on ablation flag.
+        conflict_report = {
+            "conflicts": [],
+            "pairs_checked": 0,
+            "pairs_skipped": 0,
+            "stats": {"n_conflicts": 0, "by_severity": {"HIGH": 0, "MEDIUM": 0, "LOW": 0}},
+            "skipped": not self.enable_conflict_detection,
+        }
+        if self.enable_conflict_detection and len(sub_answers) >= 2:
+            t = time.time()
+            try:
+                conflict_report.update(self.conflict_detector.detect(sub_answers))
+            except Exception as e:
+                conflict_report["error"] = f"Conflict detector error: {e}"
+            timing["conflict_detector"] = round(time.time() - t, 2)
 
         # ============== STEP 5: SYNTHESIZER ==============
         t = time.time()
@@ -241,6 +314,14 @@ class MultiAgentOrchestrator:
             # Pull confidence toward the grounded ratio (50/50 blend).
             final_confidence = round((final_confidence + grounded_ratio) / 2, 3)
 
+        # Conflict signal: high-severity cross-doc conflicts should pull confidence
+        # down and surface in the reason string. They never trigger REFUSE on their
+        # own — the analyst still wants to see both sides.
+        n_conflicts = conflict_report.get("stats", {}).get("n_conflicts", 0)
+        high_sev = conflict_report.get("stats", {}).get("by_severity", {}).get("HIGH", 0)
+        if n_conflicts:
+            final_confidence = round(max(0.0, final_confidence - 0.08 * high_sev - 0.03 * (n_conflicts - high_sev)), 3)
+
         # Decision based on validation AND verification.
         if validation["supported"] == "NO" or v_stats.get("contradicted", 0) > 0:
             decision = "REFUSE"
@@ -255,9 +336,13 @@ class MultiAgentOrchestrator:
                 f" Verifier: {v_stats.get('supported', 0)}/{n_claims} claims grounded."
                 if n_claims else ""
             )
+            conflict_note = (
+                f" Cross-doc conflicts: {n_conflicts} ({high_sev} high-severity)."
+                if n_conflicts else ""
+            )
             reason = (
                 f"Multi-agent synthesis ({len(sub_questions)} sub-queries). "
-                f"{validation['summary']}{grounded_note}"
+                f"{validation['summary']}{grounded_note}{conflict_note}"
             )
 
         return {
@@ -267,6 +352,8 @@ class MultiAgentOrchestrator:
             "confidence": final_confidence,
             "chunks": all_chunks,
             "citations": [],  # Will be filled by CitationExtractor downstream
+            "conflict_report": conflict_report,
+            "temporal_context": temporal_per_sub,
             "multi_agent_trace": {
                 "planner_decision": "MULTI_AGENT",
                 "planner_reasoning": plan["reasoning"],
@@ -276,10 +363,65 @@ class MultiAgentOrchestrator:
                 "synthesized_answer": synthesized_answer,
                 "verification_report": verification,
                 "validation_report": validation,
+                "conflict_report": conflict_report,
+                "temporal_context": temporal_per_sub,
                 "execution_time_per_agent": timing,
                 "total_time_seconds": total_time,
             },
         }
+
+    def _force_multi_agent_if_multi_entity(self, question: str) -> str:
+        """Return a non-empty reason string when the question should be forced
+        through the full multi-agent pipeline based on temporal heuristics
+        (≥2 companies or ≥2 fiscal years). Returns "" when no override needed.
+        """
+        try:
+            from src.temporal import TemporalParser
+            tf = TemporalParser().parse(question)
+        except Exception:
+            return ""
+        if not tf.is_multi_entity:
+            return ""
+        bits = []
+        if len(tf.detected_companies) >= 2:
+            bits.append(f"companies={tf.detected_companies}")
+        if len(tf.detected_years) >= 2:
+            bits.append(f"years={tf.detected_years}")
+        return "Multi-entity comparison detected (" + "; ".join(bits) + ")."
+
+    def _collect_temporal_context(self, sub_questions: List[str]) -> List[Dict]:
+        """
+        Parse temporal/company filters from each sub-question for UI badges.
+
+        We re-parse here (cheap regex) rather than threading the retriever's
+        `last_filter` through, because the parallel sub-query execution makes
+        per-request state on the retriever unsafe to read.
+        """
+        try:
+            from src.temporal import TemporalParser
+        except Exception:
+            return []
+        parser = TemporalParser()
+        out: List[Dict] = []
+        for i, sub_q in enumerate(sub_questions, 1):
+            try:
+                tf = parser.parse(sub_q)
+            except Exception:
+                continue
+            if not tf.has_filters and not tf.freshness:
+                continue
+            out.append({
+                "sub_query_index": i,
+                "sub_question": sub_q,
+                "company": tf.company,
+                "year": tf.year,
+                "quarter": tf.quarter,
+                "doc_type": tf.doc_type,
+                "freshness": tf.freshness,
+                "badge": tf.badge_label(),
+                "note": tf.note,
+            })
+        return out
 
     def _generate_sub_answer(self, sub_question: str, chunks: List[Dict]) -> str:
         """Generate an answer for a single sub-query."""

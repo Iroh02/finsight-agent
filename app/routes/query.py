@@ -4,6 +4,7 @@ import json
 import time
 import asyncio
 from pathlib import Path
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 from app.schemas import (
@@ -13,17 +14,29 @@ from app.schemas import (
     RetrievedChunk,
     SubQueryResult,
     MultiAgentTrace,
+    ConflictReport,
+    Conflict,
+    ConflictSource,
+    TemporalContext,
+    TrustScore as TrustScoreSchema,
+    TrustComponent as TrustComponentSchema,
 )
 
 # Import RAG components
 from src.vectorstore import get_vectorstore
 from src.retriever import Retriever
+from src.temporal import TemporalAwareRetriever
 from src.naive_rag import NaiveRAG
 from src.agent import AgenticRouter
 from src.citations import CitationExtractor
 from src.confidence import ConfidenceScorer
 from src.self_reflection import SelfReflectionCritic
 from src.multi_agent import MultiAgentOrchestrator
+from src.trust_score import (
+    TrustScoreCalculator,
+    derive_extended_decision,
+    EXTENDED_DECISIONS,
+)
 from src.llm_client import get_llm_client
 
 
@@ -37,10 +50,11 @@ def get_pipeline():
     """Lazy-init pipeline components on first request."""
     global _pipeline
     if _pipeline is None:
-        print("Initializing RAG pipeline (with cross-encoder reranker + multi-agent)...")
+        print("Initializing RAG pipeline (cross-encoder reranker + temporal-aware retrieval + multi-agent)...")
         vs = get_vectorstore()
         # SOTA: Two-stage retrieval with cross-encoder reranking
-        retriever = Retriever(vs, use_reranker=True, retrieve_multiplier=4)
+        # + temporal/company metadata filters when the query has dated refs.
+        retriever = TemporalAwareRetriever(vs, use_reranker=True, retrieve_multiplier=4)
         llm = get_llm_client()
         agentic = AgenticRouter(retriever, llm)
         _pipeline = {
@@ -53,10 +67,81 @@ def get_pipeline():
             "citations": CitationExtractor(use_llm=False),
             "confidence": ConfidenceScorer(use_heuristic=True),
             "critic": SelfReflectionCritic(llm),
+            "trust": TrustScoreCalculator(),
         }
         stats = vs.get_stats()
         print(f"Pipeline ready. Vector store: {stats}")
     return _pipeline
+
+
+def _format_conflict_report(raw: Optional[dict]) -> Optional[ConflictReport]:
+    """Convert raw conflict report dict into a Pydantic model (or None)."""
+    if not raw:
+        return None
+    conflicts: List[Conflict] = []
+    for c in raw.get("conflicts", []) or []:
+        try:
+            conflicts.append(Conflict(
+                type=c.get("type", "NUMERIC"),
+                severity=c.get("severity", "MEDIUM"),
+                shared_fact=c.get("shared_fact", ""),
+                claim_1=c.get("claim_1", ""),
+                claim_2=c.get("claim_2", ""),
+                explanation=c.get("explanation", ""),
+                source_1=ConflictSource(**(c.get("source_1") or {"source": "?"})),
+                source_2=ConflictSource(**(c.get("source_2") or {"source": "?"})),
+                sub_query_indices=c.get("sub_query_indices", []),
+            ))
+        except Exception:
+            continue
+    return ConflictReport(
+        conflicts=conflicts,
+        pairs_checked=raw.get("pairs_checked", 0),
+        pairs_skipped=raw.get("pairs_skipped", 0),
+        stats=raw.get("stats", {}),
+        skipped=raw.get("skipped", False),
+        reason=raw.get("reason"),
+    )
+
+
+def _format_temporal_context(raw: Optional[list]) -> List[TemporalContext]:
+    """Convert raw per-sub-query temporal context list into Pydantic models."""
+    if not raw:
+        return []
+    out: List[TemporalContext] = []
+    for t in raw:
+        try:
+            out.append(TemporalContext(**t))
+        except Exception:
+            continue
+    return out
+
+
+def _parse_temporal_for_question(question: str) -> list:
+    """Parse the original user question into a temporal_context list.
+
+    Used by agentic and naive modes (which don't go through the multi-agent
+    orchestrator) so the UI still gets a freshness/scope badge.
+    """
+    try:
+        from src.temporal import TemporalParser
+    except Exception:
+        return []
+    parser = TemporalParser()
+    tf = parser.parse(question)
+    if not tf.has_filters and not tf.freshness:
+        return []
+    return [{
+        "sub_query_index": 1,
+        "sub_question": question,
+        "company": tf.company,
+        "year": tf.year,
+        "quarter": tf.quarter,
+        "doc_type": tf.doc_type,
+        "freshness": tf.freshness,
+        "badge": tf.badge_label(),
+        "note": tf.note,
+    }]
 
 
 def _format_trace_for_response(raw_trace: dict) -> MultiAgentTrace:
@@ -77,6 +162,8 @@ def _format_trace_for_response(raw_trace: dict) -> MultiAgentTrace:
         sub_queries=sub_query_results,
         synthesis_reasoning=raw_trace.get("synthesis_reasoning"),
         validation_report=raw_trace.get("validation_report", {}),
+        conflict_report=_format_conflict_report(raw_trace.get("conflict_report")),
+        temporal_context=_format_temporal_context(raw_trace.get("temporal_context")),
         execution_time_per_agent=raw_trace.get("execution_time_per_agent", {}),
         total_time_seconds=raw_trace.get("total_time_seconds"),
     )
@@ -174,19 +261,70 @@ async def query_rag(request: QueryRequest):
                 source=chunk["source"],
                 page=chunk.get("page"),
                 relevance_score=chunk.get("score"),
+                company=chunk.get("company"),
+                year=chunk.get("year"),
+                fiscal_period=chunk.get("fiscal_period"),
+                doc_type=chunk.get("doc_type"),
             )
             for chunk in unique_chunks[:10]  # Cap at 10 for UI
         ]
+
+        # For non-multi-agent modes, parse the original question to surface
+        # the same temporal badge in the UI.
+        temporal_ctx = result.get("temporal_context")
+        if not temporal_ctx:
+            temporal_ctx = _parse_temporal_for_question(question)
+
+        # Compute the composite FinSight Trust Score from whatever signals
+        # this pipeline produced (some signals are mode-specific).
+        raw_trace = (result.get("multi_agent_trace") or {})
+        trust = pipeline["trust"].compute(
+            chunks=chunks,
+            verification=raw_trace.get("verification_report"),
+            validation=raw_trace.get("validation_report"),
+            conflict_report=result.get("conflict_report"),
+            temporal_context=temporal_ctx,
+            mode=request.mode,
+        )
+
+        # Derive extended decision (7-state) from base decision + signals
+        extended = derive_extended_decision(
+            base_decision=result.get("decision", "ANSWER"),
+            trust=trust,
+            verification=raw_trace.get("verification_report"),
+            conflict_report=result.get("conflict_report"),
+            temporal_context=temporal_ctx,
+            chunks=chunks,
+        )
 
         return QueryResponse(
             answer=answer,
             confidence=confidence,
             decision=result.get("decision", "ANSWER"),
+            recommendation=extended,
+            recommendation_description=EXTENDED_DECISIONS.get(extended),
             reason=result.get("reason", ""),
             citations=formatted_citations,
             chunks=formatted_chunks,
             execution_time_ms=round((time.time() - start_time) * 1000, 2),
             multi_agent_trace=multi_agent_trace,
+            conflict_report=_format_conflict_report(result.get("conflict_report")),
+            temporal_context=_format_temporal_context(temporal_ctx),
+            trust_score=TrustScoreSchema(
+                composite=trust.composite,
+                band=trust.band,
+                band_description=trust.band_description,
+                components=[
+                    TrustComponentSchema(
+                        name=c.name,
+                        value=round(c.value, 3),
+                        weight=c.weight,
+                        weighted=round(c.contribution, 3),
+                        detail=c.detail,
+                    )
+                    for c in trust.components
+                ],
+            ),
         )
 
     except HTTPException:
